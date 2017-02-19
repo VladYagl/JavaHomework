@@ -8,7 +8,7 @@
     </extension>
     <option name="MAIN_CLASS_NAME" value="ru.ifmo.ctddev.yaglamunov.walk.RecursiveWalk" />
     <option name="VM_PARAMETERS" value="" />
-    <option name="PROGRAM_PARAMETERS" value="res\__Test__Walk__\test03_missingFiles.in res\__Test__Walk__\test03_missingFiles.out" />
+    <option name="PROGRAM_PARAMETERS" value=";121 #@$^&amp;%$&amp;$" />
     <option name="WORKING_DIRECTORY" value="file://$PROJECT_DIR$" />
     <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="false" />
     <option name="ALTERNATIVE_JRE_PATH" />

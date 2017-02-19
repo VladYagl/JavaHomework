@@ -41,14 +41,14 @@ public class RecursiveWalk {
                     Files.walkFileTree(start, new SimpleFileVisitor<Path>() {
                         @Override
                         public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                            writer.write(String.format("%08x" + " " + file.toString() + "\n", FNVHash(Files.newInputStream(file))));
+                            writer.write(String.format("%08x " + file.toString() + "\n", FNVHash(Files.newInputStream(file))));
                             return super.visitFile(file, attrs);
                         }
 
                         @Override
                         public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
                             System.err.println("Visit file failed: " + file.toString());
-                            writer.write(String.format("%08x" + " " + file.toString() + "\n", 0));
+                            writer.write(String.format("%08x " + file.toString() + "\n", 0));
                             return FileVisitResult.CONTINUE;
                         }
                     });
