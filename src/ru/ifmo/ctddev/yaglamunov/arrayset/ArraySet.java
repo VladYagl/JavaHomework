@@ -3,42 +3,66 @@ package ru.ifmo.ctddev.yaglamunov.arrayset;
 
 import java.util.*;
 
-public class ArraySet implements NavigableSet<Integer> {
+@SuppressWarnings("WeakerAccess")
+public class ArraySet extends AbstractSet<Integer> implements NavigableSet<Integer> {
 
     private final static ArraySet emptyArraySet = new ArraySet();
 
     private class ArraySetIterator implements Iterator<Integer> {
         private int position;
+        private final boolean descending;
 
         ArraySetIterator(int position) {
             this.position = position;
+            descending = false;
+        }
+
+        ArraySetIterator(int position, boolean descending) {
+            this.position = position;
+            this.descending = descending;
         }
 
         @Override
         public boolean hasNext() {
-            return position < right;
+            return (!descending ? position < size() : position >= 0);
         }
 
         @Override
         public Integer next() {
-            return data[position++];
+            return data.get(!descending ? position++ : position--);
         }
     }
 
-    private final Integer[] data;
+    private class DescendingList extends AbstractList<Integer> {
+        private final List<Integer> data;
+
+        DescendingList(List<Integer> other) {
+            data = other;
+        }
+
+        @Override
+        public Integer get(int index) {
+            return data.get(size() - index - 1);
+        }
+
+        @Override
+        public int size() {
+            return data.size();
+        }
+    }
+
+    private final List<Integer> data;
     private final Comparator<Integer> comparator;
     private final Comparator<Integer> officialComparator;
-    private final int left;
-    private final int right;
     private final int size;
 
     private int find(Integer e, boolean inclusive, boolean lowerBound) {
-        int l = left - 1;
-        int r = right;
+        int l = -1;
+        int r = size;
         while (r - l > 1) {
             int m = (l + r) / 2;
-            if ((comparator.compare(data[m], e) < 0 && lowerBound) ||
-                    (comparator.compare(data[m], e) <= 0 && !lowerBound)) {
+            if ((comparator.compare(data.get(m), e) < 0 && lowerBound) ||
+                    (comparator.compare(data.get(m), e) <= 0 && !lowerBound)) {
                 l = m;
             } else {
                 r = m;
@@ -58,28 +82,15 @@ public class ArraySet implements NavigableSet<Integer> {
         } else {
             this.comparator = comparator;
         }
-        Integer[] tmp = new Integer[collection.size()];
-        int position = 0;
-        for (int i : collection) {
-            tmp[position++] = i;
-        }
-        Arrays.sort(tmp, this.comparator);
-        int count = (tmp.length > 0 ? 1 : 0);
-        for (int i = 0; i < tmp.length - 1; i++) {
-            if (this.comparator.compare(tmp[i], tmp[i + 1]) != 0) {
-                count++;
+        ArrayList<Integer> tmp = new ArrayList<>(collection);
+        tmp.sort(this.comparator);
+        data = new ArrayList<>();
+        for (int i = 0; i < tmp.size(); i++) {
+            if (i == 0 || this.comparator.compare(tmp.get(i), tmp.get(i - 1)) != 0) {
+                data.add(tmp.get(i));
             }
         }
-        data = new Integer[count];
-        count = 0;
-        for (int i = 0; i < tmp.length; i++) {
-            if (i == 0 || this.comparator.compare(tmp[i], tmp[i - 1]) != 0) {
-                data[count++] = tmp[i];
-            }
-        }
-        left = 0;
-        right = data.length;
-        size = data.length;
+        size = data.size();
     }
 
     public ArraySet(Collection<Integer> collection) {
@@ -90,41 +101,39 @@ public class ArraySet implements NavigableSet<Integer> {
         this(Collections.emptyList());
     }
 
-    private ArraySet(ArraySet other, int left, int right) {
-        data = other.data;
-        comparator = other.comparator;
-        officialComparator = other.officialComparator;
-        this.left = left;
-        this.right = right;
-        this.size = right - left;
+    private ArraySet(List<Integer> collection, Comparator<Integer> comparator, Comparator<Integer> officialComparator) {
+        data = collection;
+        size = data.size();
+        this.comparator = comparator;
+        this.officialComparator = officialComparator;
     }
 
     @Override
     public Integer lower(Integer e) {
         int position = find(e, false, true);
-        if (position < left) return null;
-        return data[position];
+        if (position < 0) return null;
+        return data.get(position);
     }
 
     @Override
     public Integer floor(Integer e) {
         int position = find(e, true, false);
-        if (position < left) return null;
-        return data[position];
+        if (position < 0) return null;
+        return data.get(position);
     }
 
     @Override
     public Integer ceiling(Integer e) {
         int position = find(e, true, true);
-        if (position >= right) return null;
-        return data[position];
+        if (position >= size) return null;
+        return data.get(position);
     }
 
     @Override
     public Integer higher(Integer e) {
         int position = find(e, false, false);
-        if (position >= right) return null;
-        return data[position];
+        if (position >= size) return null;
+        return data.get(position);
     }
 
     @Override
@@ -155,30 +164,7 @@ public class ArraySet implements NavigableSet<Integer> {
 
     @Override
     public Iterator<Integer> iterator() {
-        return new ArraySetIterator(left);
-    }
-
-
-    @Override
-    public Object[] toArray() {
-        return Arrays.copyOfRange(data, left, right);
-    }
-
-    @SuppressWarnings("unchecked")
-    @Override
-    public <T> T[] toArray(T[] a) {
-        if (a.getClass().isAssignableFrom(Integer[].class)) {
-            if (size <= a.length) {
-                for (int i = left; i < right; i++) {
-                    a[i - left] = (T) data[i];
-                }
-                return a;
-            } else {
-                return Arrays.copyOfRange((T[]) data, left, right);
-            }
-        } else {
-            throw new ArrayStoreException();
-        }
+        return new ArraySetIterator(0);
     }
 
     @Override
@@ -189,16 +175,6 @@ public class ArraySet implements NavigableSet<Integer> {
     @Override
     public boolean remove(Object o) {
         throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean containsAll(Collection<?> c) {
-        for (Object e : c) {
-            if (!contains(e)) {
-                return false;
-            }
-        }
-        return true;
     }
 
     @Override
@@ -223,21 +199,20 @@ public class ArraySet implements NavigableSet<Integer> {
 
     @Override
     public Iterator<Integer> descendingIterator() {
-        return null;
+        return new ArraySetIterator(size - 1, true);
     }
 
     @Override
     public NavigableSet<Integer> descendingSet() {
-        return null;
+        return new ArraySet(new DescendingList(data), comparator.reversed(), (officialComparator == null ? null : officialComparator.reversed()));
     }
 
     @Override
     public NavigableSet<Integer> subSet(Integer fromElement, boolean fromInclusive, Integer toElement, boolean toInclusive) {
-        int from = Math.max(find(fromElement, fromInclusive, fromInclusive), left);
-        int to = Math.min(find(toElement, toInclusive, !toInclusive), right - 1);
+        int from = Math.max(find(fromElement, fromInclusive, fromInclusive), 0);
+        int to = Math.min(find(toElement, toInclusive, !toInclusive), size - 1);
         if (from > to) return emptyArraySet;
-//        return new ArraySet(Arrays.asList(Arrays.copyOfRange(data, from, to + 1)), comparator);
-        return new ArraySet(this, from, to + 1);
+        return new ArraySet(data.subList(from, to + 1), comparator, officialComparator);
     }
 
     @Override
@@ -275,12 +250,12 @@ public class ArraySet implements NavigableSet<Integer> {
     @Override
     public Integer first() {
         if (isEmpty()) throw new NoSuchElementException();
-        return data[left];
+        return data.get(0);
     }
 
     @Override
     public Integer last() {
         if (isEmpty()) throw new NoSuchElementException();
-        return data[right - 1];
+        return data.get(size - 1);
     }
 }
