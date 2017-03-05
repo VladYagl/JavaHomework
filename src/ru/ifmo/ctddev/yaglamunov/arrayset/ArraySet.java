@@ -4,11 +4,9 @@ package ru.ifmo.ctddev.yaglamunov.arrayset;
 import java.util.*;
 
 @SuppressWarnings("WeakerAccess")
-public class ArraySet extends AbstractSet<Integer> implements NavigableSet<Integer> {
+public class ArraySet<T> extends AbstractSet<T> implements NavigableSet<T> {
 
-    private final static ArraySet emptyArraySet = new ArraySet();
-
-    private class ArraySetIterator implements Iterator<Integer> {
+    private class ArraySetIterator implements Iterator<T> {
         private int position;
         private final boolean descending;
 
@@ -28,20 +26,20 @@ public class ArraySet extends AbstractSet<Integer> implements NavigableSet<Integ
         }
 
         @Override
-        public Integer next() {
+        public T next() {
             return data.get(!descending ? position++ : position--);
         }
     }
 
-    private class DescendingList extends AbstractList<Integer> {
-        private final List<Integer> data;
+    private class DescendingList extends AbstractList<T> {
+        private final List<T> data;
 
-        DescendingList(List<Integer> other) {
+        DescendingList(List<T> other) {
             data = other;
         }
 
         @Override
-        public Integer get(int index) {
+        public T get(int index) {
             return data.get(size() - index - 1);
         }
 
@@ -51,18 +49,17 @@ public class ArraySet extends AbstractSet<Integer> implements NavigableSet<Integ
         }
     }
 
-    private final List<Integer> data;
-    private final Comparator<Integer> comparator;
-    private final Comparator<Integer> officialComparator;
+    private final List<T> data;
+    private final Comparator<T> comparator;
     private final int size;
 
-    private int find(Integer e, boolean inclusive, boolean lowerBound) {
+    private int find(T e, boolean inclusive, boolean lowerBound) {
         int l = -1;
         int r = size;
         while (r - l > 1) {
             int m = (l + r) / 2;
-            if ((comparator.compare(data.get(m), e) < 0 && lowerBound) ||
-                    (comparator.compare(data.get(m), e) <= 0 && !lowerBound)) {
+            if ((Objects.compare(data.get(m), e, comparator) < 0 && lowerBound) ||
+                    (Objects.compare(data.get(m), e, comparator) <= 0 && !lowerBound)) {
                 l = m;
             } else {
                 r = m;
@@ -75,74 +72,76 @@ public class ArraySet extends AbstractSet<Integer> implements NavigableSet<Integ
         }
     }
 
-    public ArraySet(Collection<Integer> collection, Comparator<Integer> comparator) {
-        officialComparator = comparator;
-        if (comparator == null) {
-            this.comparator = Integer::compareTo;
-        } else {
-            this.comparator = comparator;
-        }
-        ArrayList<Integer> tmp = new ArrayList<>(collection);
+    public ArraySet(Collection<T> collection, Comparator<T> comparator) {
+        this.comparator = comparator;
+        ArrayList<T> tmp = new ArrayList<>(collection);
         tmp.sort(this.comparator);
         data = new ArrayList<>();
         for (int i = 0; i < tmp.size(); i++) {
-            if (i == 0 || this.comparator.compare(tmp.get(i), tmp.get(i - 1)) != 0) {
+            if (i == 0 || Objects.compare(tmp.get(i), tmp.get(i - 1), comparator) != 0) {
                 data.add(tmp.get(i));
             }
         }
         size = data.size();
     }
 
-    public ArraySet(Collection<Integer> collection) {
-        this(collection, null);
+    public ArraySet(Collection<? extends T> collection) {
+        this((Collection<T>) collection, null);
     }
 
     public ArraySet() {
         this(Collections.emptyList());
     }
 
-    private ArraySet(List<Integer> collection, Comparator<Integer> comparator, Comparator<Integer> officialComparator) {
+    private ArraySet(List<T> collection, Comparator<T> comparator, boolean my) {
         data = collection;
         size = data.size();
         this.comparator = comparator;
-        this.officialComparator = officialComparator;
     }
 
     @Override
-    public Integer lower(Integer e) {
+    public T lower(T e) {
         int position = find(e, false, true);
-        if (position < 0) return null;
+        if (position < 0) {
+            return null;
+        }
         return data.get(position);
     }
 
     @Override
-    public Integer floor(Integer e) {
+    public T floor(T e) {
         int position = find(e, true, false);
-        if (position < 0) return null;
+        if (position < 0) {
+            return null;
+        }
         return data.get(position);
     }
 
     @Override
-    public Integer ceiling(Integer e) {
+    public T ceiling(T e) {
         int position = find(e, true, true);
-        if (position >= size) return null;
+        if (position >= size) {
+            return null;
+        }
         return data.get(position);
     }
 
     @Override
-    public Integer higher(Integer e) {
+    public T higher(T e) {
         int position = find(e, false, false);
-        if (position >= size) return null;
+        if (position >= size) {
+            return null;
+        }
         return data.get(position);
     }
 
     @Override
-    public Integer pollFirst() {
+    public T pollFirst() {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public Integer pollLast() {
+    public T pollLast() {
         throw new UnsupportedOperationException();
     }
 
@@ -158,17 +157,17 @@ public class ArraySet extends AbstractSet<Integer> implements NavigableSet<Integ
 
     @Override
     public boolean contains(Object o) {
-        Integer pos = floor((Integer) o);
-        return pos != null && comparator.compare(pos, (Integer) o) == 0;
+        T pos = floor((T) o);
+        return pos != null && Objects.compare(pos, (T) o, comparator) == 0;
     }
 
     @Override
-    public Iterator<Integer> iterator() {
+    public Iterator<T> iterator() {
         return new ArraySetIterator(0);
     }
 
     @Override
-    public boolean add(Integer integer) {
+    public boolean add(T T) {
         throw new UnsupportedOperationException();
     }
 
@@ -178,7 +177,7 @@ public class ArraySet extends AbstractSet<Integer> implements NavigableSet<Integ
     }
 
     @Override
-    public boolean addAll(Collection<? extends Integer> c) {
+    public boolean addAll(Collection<? extends T> c) {
         throw new UnsupportedOperationException();
     }
 
@@ -198,64 +197,74 @@ public class ArraySet extends AbstractSet<Integer> implements NavigableSet<Integ
     }
 
     @Override
-    public Iterator<Integer> descendingIterator() {
+    public Iterator<T> descendingIterator() {
         return new ArraySetIterator(size - 1, true);
     }
 
     @Override
-    public NavigableSet<Integer> descendingSet() {
-        return new ArraySet(new DescendingList(data), comparator.reversed(), (officialComparator == null ? null : officialComparator.reversed()));
+    public NavigableSet<T> descendingSet() {
+        return new ArraySet<>(new DescendingList(data), comparator.reversed(), true);
     }
 
     @Override
-    public NavigableSet<Integer> subSet(Integer fromElement, boolean fromInclusive, Integer toElement, boolean toInclusive) {
+    public NavigableSet<T> subSet(T fromElement, boolean fromInclusive, T toElement, boolean toInclusive) {
         int from = Math.max(find(fromElement, fromInclusive, fromInclusive), 0);
         int to = Math.min(find(toElement, toInclusive, !toInclusive), size - 1);
-        if (from > to) return emptyArraySet;
-        return new ArraySet(data.subList(from, to + 1), comparator, officialComparator);
+        if (from > to) {
+            return new ArraySet<>();
+        }
+        return new ArraySet<>(data.subList(from, to + 1), comparator, true);
     }
 
     @Override
-    public NavigableSet<Integer> headSet(Integer toElement, boolean inclusive) {
-        if (isEmpty()) return emptyArraySet;
+    public NavigableSet<T> headSet(T toElement, boolean inclusive) {
+        if (isEmpty()) {
+            return new ArraySet<>();
+        }
         return subSet(first(), true, toElement, inclusive);
     }
 
     @Override
-    public NavigableSet<Integer> tailSet(Integer fromElement, boolean inclusive) {
-        if (isEmpty()) return emptyArraySet;
+    public NavigableSet<T> tailSet(T fromElement, boolean inclusive) {
+        if (isEmpty()) {
+            return new ArraySet<>();
+        }
         return subSet(fromElement, inclusive, last(), true);
     }
 
     @Override
-    public Comparator<? super Integer> comparator() {
-        return officialComparator;
+    public Comparator<? super T> comparator() {
+        return comparator;
     }
 
     @Override
-    public SortedSet<Integer> subSet(Integer fromElement, Integer toElement) {
+    public SortedSet<T> subSet(T fromElement, T toElement) {
         return subSet(fromElement, true, toElement, false);
     }
 
     @Override
-    public SortedSet<Integer> headSet(Integer toElement) {
+    public SortedSet<T> headSet(T toElement) {
         return headSet(toElement, false);
     }
 
     @Override
-    public SortedSet<Integer> tailSet(Integer fromElement) {
+    public SortedSet<T> tailSet(T fromElement) {
         return tailSet(fromElement, true);
     }
 
     @Override
-    public Integer first() {
-        if (isEmpty()) throw new NoSuchElementException();
+    public T first() {
+        if (isEmpty()) {
+            throw new NoSuchElementException();
+        }
         return data.get(0);
     }
 
     @Override
-    public Integer last() {
-        if (isEmpty()) throw new NoSuchElementException();
+    public T last() {
+        if (isEmpty()) {
+            throw new NoSuchElementException();
+        }
         return data.get(size - 1);
     }
 }

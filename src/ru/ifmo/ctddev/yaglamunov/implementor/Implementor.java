@@ -12,6 +12,8 @@ import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Objects;
 
 public class Implementor implements Impler {
@@ -67,7 +69,20 @@ public class Implementor implements Impler {
             nonPrivate = true;
             print("\tpublic %sImpl(", aClass.getSimpleName());
             printParameters(constructor.getParameters());
-            print(") {");
+            print(")");
+            if (constructor.getExceptionTypes().length > 0) {
+                print(" throws ");
+                boolean first = true;
+                for (Class exception : constructor.getExceptionTypes()) {
+                    if (!first) {
+                        print(", ");
+                    } else {
+                        first = false;
+                    }
+                    print(exception.getCanonicalName());
+                }
+            }
+            print(" {");
             if (constructor.getParameters().length > 0) {
                 print("super(");
                 for (int i = 0; i < constructor.getParameters().length; i++) {
@@ -87,16 +102,33 @@ public class Implementor implements Impler {
         }
     }
 
+    private void printMethod(Method method, String modif) throws IOException {
+        print("\t%s %s %s(", modif, method.getReturnType().getCanonicalName(), method.getName());
+        printParameters(method.getParameters());
+        print(") {");
+        if (method.getReturnType() != void.class) {
+            print("return %s;", getDefaultValue(method.getReturnType()));
+        }
+        println("}");
+    }
+
     private void printMethods(Class aClass) throws IOException {
+        HashSet<Method> methods = new HashSet<>();
+        Class a = aClass;
+        while (a != null) {
+            methods.addAll(Arrays.asList(a.getDeclaredMethods()));
+            a = a.getSuperclass();
+        }
+
         for (Method method : aClass.getMethods()) {
             if (Modifier.isAbstract(method.getModifiers())) {
-                print("\tpublic %s %s(", method.getReturnType().getCanonicalName(), method.getName());
-                printParameters(method.getParameters());
-                print(") {");
-                if (method.getReturnType() != void.class) {
-                    print("return %s;", getDefaultValue(method.getReturnType()));
-                }
-                println("}");
+                printMethod(method, "public");
+            }
+        }
+
+        for (Method method : methods) {
+            if (Modifier.isAbstract(method.getModifiers()) && Modifier.isProtected(method.getModifiers())) {
+                printMethod(method, "protected");
             }
         }
     }
