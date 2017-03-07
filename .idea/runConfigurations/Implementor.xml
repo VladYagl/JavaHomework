@@ -1,21 +1,21 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="RecursiveWalk" type="Application" factoryName="Application" nameIsGenerated="true">
+  <configuration default="false" name="Implementor" type="Application" factoryName="Application">
     <extension name="coverage" enabled="false" merge="false" sample_coverage="true" runner="idea">
       <pattern>
-        <option name="PATTERN" value="ru.ifmo.ctddev.yaglamunov.walk.*" />
+        <option name="PATTERN" value="ru.ifmo.ctddev.yaglamunov.implementor.*" />
         <option name="ENABLED" value="true" />
       </pattern>
     </extension>
-    <option name="MAIN_CLASS_NAME" value="ru.ifmo.ctddev.yaglamunov.walk.RecursiveWalk" />
+    <option name="MAIN_CLASS_NAME" value="ru.ifmo.ctddev.yaglamunov.implementor.Main" />
     <option name="VM_PARAMETERS" value="" />
-    <option name="PROGRAM_PARAMETERS" value=";121 #@$^&amp;%$&amp;$" />
-    <option name="WORKING_DIRECTORY" value="file://$PROJECT_DIR$" />
+    <option name="PROGRAM_PARAMETERS" value="-jar java.util.TreeSet TreeSet.jar" />
+    <option name="WORKING_DIRECTORY" value="file://$PROJECT_DIR$/res/" />
     <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="false" />
     <option name="ALTERNATIVE_JRE_PATH" />
     <option name="ENABLE_SWING_INSPECTOR" value="false" />
     <option name="ENV_VARIABLES" />
     <option name="PASS_PARENT_ENVS" value="true" />
-    <module name="JavaHomework" />
+    <module name="Implementor" />
     <envs />
     <method />
   </configuration>

@@ -7,6 +7,7 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="ArraySetTest" level="project" />
     <orderEntry type="library" name="GoshaDependencies" level="project" />
   </component>
 </module>

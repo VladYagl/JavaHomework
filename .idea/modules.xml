@@ -2,7 +2,10 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/ArraySet/ArraySet.iml" filepath="$PROJECT_DIR$/ArraySet/ArraySet.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Implementor/Implementor.iml" filepath="$PROJECT_DIR$/Implementor/Implementor.iml" />
       <module fileurl="file://$PROJECT_DIR$/JavaHomework.iml" filepath="$PROJECT_DIR$/JavaHomework.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Walk/Walk.iml" filepath="$PROJECT_DIR$/Walk/Walk.iml" />
     </modules>
   </component>
 </project>
