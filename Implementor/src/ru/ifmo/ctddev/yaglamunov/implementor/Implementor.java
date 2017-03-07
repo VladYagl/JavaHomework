@@ -3,6 +3,8 @@ package ru.ifmo.ctddev.yaglamunov.implementor;
 import info.kgeorgiy.java.advanced.implementor.ImplerException;
 import info.kgeorgiy.java.advanced.implementor.JarImpler;
 
+import javax.tools.JavaCompiler;
+import javax.tools.ToolProvider;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
@@ -18,6 +20,10 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Objects;
+import java.util.jar.Attributes;
+import java.util.jar.JarOutputStream;
+import java.util.jar.Manifest;
+import java.util.zip.ZipEntry;
 
 public class Implementor implements JarImpler {
 
@@ -209,30 +215,29 @@ public class Implementor implements JarImpler {
     @Override
     public void implementJar(Class<?> aClass, Path jarFile) throws ImplerException {
 
-//        implement(aClass, Paths.get("./"));
-//        Path dir = getSourceDir(aClass);
-//        Path sourceFile = dir.resolve(aClass.getSimpleName() + "Impl.java");
-//        Path classFile = dir.resolve(aClass.getSimpleName() + "Impl.class");
-
-//        JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
-//        if (compiler == null) {
-//            throw new ImplerException("Could not get java compiler");
-//        }
-//        if (compiler.run(null, null, null, sourceFile.toString()) != 0) {
-//            throw new ImplerException("Compilation error");
-//        }
-
-//        Manifest manifest = new Manifest();
-//        manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
-//        try(JarOutputStream target = new JarOutputStream(Files.newOutputStream(jarFile), manifest)) {
-//            target.putNextEntry(new ZipEntry(classFile.toString()));
-//            Files.copy(classFile, target);
-//            target.close();
-////            Files.deleteIfExists(sourceFile);
-////            Files.deleteIfExists(classFile);
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
+        implement(aClass, Paths.get("./"));
+        Path dir = getSourceDir(aClass);
+        Path sourceFile = dir.resolve(aClass.getSimpleName() + "Impl.java");
+        Path classFile = dir.resolve(aClass.getSimpleName() + "Impl.class");
+        JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+        if (compiler == null) {
+            throw new ImplerException("Could not get java compiler");
+        }
+        if (compiler.run(null, null, null, sourceFile.toString()) != 0) {
+            throw new ImplerException("Compilation error");
+        }
+        Manifest manifest = new Manifest();
+        manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
+        manifest.getMainAttributes().put(new Attributes.Name("Created-By"), "1.8.0_73 (Oracle Corporation)");
+        try (JarOutputStream target = new JarOutputStream(Files.newOutputStream(jarFile), manifest)) {
+            target.putNextEntry(new ZipEntry(classFile.toString()));
+            Files.copy(classFile, target);
+            target.close();
+//            Files.deleteIfExists(sourceFile);
+//            Files.deleteIfExists(classFile);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         final URLClassLoader loader = getClassLoader(jarFile);
         final String name = aClass.getCanonicalName() + "Impl";
