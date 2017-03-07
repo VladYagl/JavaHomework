@@ -3,249 +3,274 @@ package ru.ifmo.ctddev.yaglamunov.implementor;
 import info.kgeorgiy.java.advanced.implementor.ImplerException;
 import info.kgeorgiy.java.advanced.implementor.JarImpler;
 
-import javax.tools.JavaCompiler;
-import javax.tools.ToolProvider;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.IOException;
-import java.lang.reflect.*;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLClassLoader;
+import javax.tools.*;
+import java.io.*;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
-import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Objects;
+import java.util.*;
 import java.util.jar.Attributes;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
+import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 
+/**
+ * Created by SuperStrongDinosaur on 24.02.17.
+ */
+
 public class Implementor implements JarImpler {
-
-    private static final Charset charset = Charset.forName("UTF-8");
-
-    private BufferedWriter localWriter;
-
-    private void println(String a) throws IOException {
-        localWriter.write(a);
-        localWriter.newLine();
-    }
-
-    private void println() throws IOException {
-        println("");
-    }
-
-    private void println(String format, Object... args) throws IOException {
-        println(String.format(format, args));
-    }
-
-    private void print(String a) throws IOException {
-        localWriter.write(a);
-    }
-
-    private void print(String format, Object... args) throws IOException {
-        print(String.format(format, args));
-    }
-
-    private void printParameters(Parameter[] parameters) throws IOException {
-        int position = 0;
-        for (Parameter parameter : parameters) {
-            if (position++ != 0) {
-                print(", ");
-            }
-            print("%s %s", parameter.getType().getCanonicalName(), parameter.getName());
-        }
-    }
-
-    private static String getDefaultValue(Class clazz) {
-        if (clazz == char.class) {
-            return "\'\u0000\'";
-        }
-        return Objects.toString(Array.get(Array.newInstance(clazz, 1), 0)) + (clazz == float.class ? "F" : "");
-    }
-
-    private void printConstructors(Class aClass) throws IOException, ImplerException {
-        boolean nonPrivate = false;
-        for (Constructor<?> constructor : aClass.getDeclaredConstructors()) {
-            if (Modifier.isPrivate(constructor.getModifiers())) {
-                continue;
-            }
-            nonPrivate = true;
-            print("\tpublic %sImpl(", aClass.getSimpleName());
-            printParameters(constructor.getParameters());
-            print(")");
-            if (constructor.getExceptionTypes().length > 0) {
-                print(" throws ");
-                boolean first = true;
-                for (Class exception : constructor.getExceptionTypes()) {
-                    if (!first) {
-                        print(", ");
-                    } else {
-                        first = false;
-                    }
-                    print(exception.getCanonicalName());
-                }
-            }
-            print(" {\n");
-            if (constructor.getParameters().length > 0) {
-                print("\t\tsuper(");
-                for (int i = 0; i < constructor.getParameters().length; i++) {
-                    if (i != 0) {
-                        print(", ");
-                    }
-                    print("arg" + i);
-                }
-                print(");");
-            }
-            println("\n\t}\n");
-        }
-        println();
-
-        if (!aClass.isInterface() && !nonPrivate) {
-            throw new ImplerException("There is no default constructor available in " + aClass.getSimpleName());
-        }
-    }
-
-    private void printMethod(Method method, String modif) throws IOException {
-        print("\t%s %s %s(", modif, method.getReturnType().getCanonicalName(), method.getName());
-        printParameters(method.getParameters());
-        print(") {");
-        if (method.getReturnType() != void.class) {
-            print("\n\t\treturn %s;\n\t", getDefaultValue(method.getReturnType()));
-        }
-        println("}\n");
-    }
-
-    private void printMethods(Class aClass) throws IOException {
-        HashSet<Method> methods = new HashSet<>();
-        Class a = aClass;
-        while (a != null) {
-            methods.addAll(Arrays.asList(a.getDeclaredMethods()));
-            a = a.getSuperclass();
-        }
-
-        for (Method method : aClass.getMethods()) {
-            if (Modifier.isAbstract(method.getModifiers())) {
-                printMethod(method, "public");
-            }
-        }
-
-        for (Method method : methods) {
-            if (Modifier.isAbstract(method.getModifiers()) && Modifier.isProtected(method.getModifiers())) {
-                printMethod(method, "protected");
-            }
-        }
-    }
-
-    private Path getSourceDir(Class aClass, Path path) {
-        return path.resolve(aClass.getPackage().getName().replace(".", File.separator));
-    }
-
-    private Path getSourceDir(Class aClass) {
-        return getSourceDir(aClass, Paths.get("./"));
-    }
-
+    /**
+     * Make own class, compile that file and zip it to jar file in directory
+     * @param token   type token to create implementation for.
+     * @param jarFile target <tt>.jar</tt> file.
+     * @throws ImplerException if inheriting impossible
+     *                         javac was not found
+     *                         javac exit code != 0
+     *                         or resulting classfile was not found
+     *                         IOException occurred
+     */
     @Override
-    public void implement(Class<?> aClass, Path path) throws ImplerException {
-        if (aClass == null || path == null) {
-            throw new ImplerException("Null arguments");
-        }
-        if (aClass.isPrimitive()) {
-            throw new ImplerException("Primitive class");
-        }
-        if (aClass.isArray()) {
-            throw new ImplerException("Array class");
-        }
-        if (Modifier.isFinal(aClass.getModifiers())) {
-            throw new ImplerException("Final class");
-        }
-        if (aClass.equals(Enum.class)) {
-            throw new ImplerException("Enum");
-        }
+    public void implementJar(Class<?> token, Path jarFile) throws ImplerException {
+        implement(token, Paths.get("./"));
+        Path sourceFile = Paths.get(token.getPackage().getName().replace(".", File.separator) + File.separator + token.getSimpleName() + "Impl.java");
 
-        try {
-            path = getSourceDir(aClass, path);
-            Files.createDirectories(path);
-        } catch (IOException | InvalidPathException e) {
-            throw new ImplerException(e);
-        }
-
-        try (final BufferedWriter writer = Files.newBufferedWriter(path.resolve(aClass.getSimpleName() + "Impl.java"), charset)) {
-            localWriter = writer;
-            println("package " + aClass.getPackage().getName() + ";\n");
-            print("public class %sImpl %s %s", aClass.getSimpleName(), aClass.isInterface() ? "implements" : "extends", aClass.getName());
-
-            if (aClass.getInterfaces().length > 0) {
-                int count = 1;
-                if (!aClass.isInterface()) {
-                    print(" implements ");
-                    count = 0;
-                }
-                for (Class inter : aClass.getInterfaces()) {
-                    if (count++ != 0) {
-                        print(", ");
-                    }
-                    print(inter.getName());
-                }
-            }
-            println("{\n");
-
-            printConstructors(aClass);
-            printMethods(aClass);
-
-            println("}");
-        } catch (IOException e) {
-            throw new ImplerException(e);
-        }
-    }
-
-    protected static URLClassLoader getClassLoader(final Path root) {
-        try {
-            return new URLClassLoader(new URL[]{root.toUri().toURL()});
-        } catch (final MalformedURLException e) {
-            throw new AssertionError(e);
-        }
-    }
-
-    @Override
-    public void implementJar(Class<?> aClass, Path jarFile) throws ImplerException {
-
-        implement(aClass, Paths.get("./"));
-        Path dir = getSourceDir(aClass);
-        Path sourceFile = dir.resolve(aClass.getSimpleName() + "Impl.java");
-        Path classFile = dir.resolve(aClass.getSimpleName() + "Impl.class");
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
         if (compiler == null) {
-            throw new ImplerException("Could not get java compiler");
+            throw new ImplerException("Couldn't find java compiler");
         }
         if (compiler.run(null, null, null, sourceFile.toString()) != 0) {
-            throw new ImplerException("Compilation error");
+            throw new ImplerException("Error while compiling");
         }
+        Path classFile = Paths.get(sourceFile.toString().replace(".java", ".class"));
+
         Manifest manifest = new Manifest();
         manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
-        manifest.getMainAttributes().put(new Attributes.Name("Created-By"), "1.8.0_73 (Oracle Corporation)");
-        try (JarOutputStream target = new JarOutputStream(Files.newOutputStream(jarFile), manifest)) {
+        try(JarOutputStream target = new JarOutputStream(Files.newOutputStream(jarFile), manifest)) {
             target.putNextEntry(new ZipEntry(classFile.toString()));
             Files.copy(classFile, target);
             target.close();
-//            Files.deleteIfExists(sourceFile);
-//            Files.deleteIfExists(classFile);
+            Files.deleteIfExists(sourceFile);
+            Files.deleteIfExists(classFile);
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
 
-        final URLClassLoader loader = getClassLoader(jarFile);
-        final String name = aClass.getCanonicalName() + "Impl";
+    /**
+     * Class that's have to make some implementation of classes
+     */
+    private class ClassDescriber {
+        private Class aClass;
+        private StringBuilder builder = new StringBuilder();
+        private final String TAB = "    ";
+
+        /**
+         * create instance
+         * @param aClass class from what we want to make instance
+         */
+        public ClassDescriber(Class aClass) {
+            this.aClass = aClass;
+        }
+
+        /**
+         * return implementation
+         * @return string with implementation
+         * @throws ImplerException if something wrong
+         */
+        public String emptyImplemented() throws ImplerException {
+            if (!aClass.getPackage().getName().equals("")) {
+                write("package ", aClass.getPackage().getName(), ";\n\n");
+            }
+            String simpleName = aClass.getSimpleName() + "Impl";
+            write("public class ", simpleName, " ", aClass.isInterface() ? "implements " : "extends ", aClass.getCanonicalName(), " {");
+
+            for (Constructor constructor : aClass.getDeclaredConstructors()) {
+                if (!Modifier.isPrivate(constructor.getModifiers())) {
+                    printConstructor(constructor, simpleName);
+                }
+            }
+
+            for (Method method : getAbstractMethods(aClass)) {
+                printMethod(method);
+            }
+            write("\n}");
+            return builder.toString();
+        }
+
+        /**
+         * get all non abstract methods and return list of it
+         * @param aClass class from where gets methods
+         * @return list of all non abstract methods
+         */
+        private List<Method> getAbstractMethods(Class aClass) {
+            Map<String, Method> map = new HashMap<>();
+            getAllHierarchyMethods(map, aClass);
+            return map.values().stream().filter(method -> Modifier.isAbstract(method.getModifiers())).collect(Collectors.toList());
+        }
+
+        /**
+         * recursive method for getAbstractMethods
+         * @param map map wit methods
+         * @param aClass class from where gets methods
+         */
+        private void getAllHierarchyMethods(Map<String, Method> map, Class aClass) {
+            if (aClass == null) {
+                return;
+            }
+            for (Method method : aClass.getDeclaredMethods()) {
+                map.putIfAbsent(method.getName() + Arrays.toString(method.getParameterTypes()), method);
+            }
+            getAllHierarchyMethods(map, aClass.getSuperclass());
+            for (Class interf : aClass.getInterfaces()) {
+                getAllHierarchyMethods(map, interf);
+            }
+        }
+
+        /**
+         * add one non private constructor to implementation
+         * @param constructor non private constructor
+         * @param simpleName simple name of constructor
+         */
+        private void printConstructor(Constructor constructor, String simpleName) {
+            write(TAB, "\npublic ", simpleName, "(");
+            printArgs(constructor.getParameterTypes());
+            write(")");
+            printExceptions(constructor.getExceptionTypes());
+            write("{\n", TAB, TAB, "super(");
+            int n = constructor.getParameterTypes().length;
+            for (int i = 0; i < n; i++) {
+                write("arg", String.valueOf(i));
+                if (i != n - 1) {
+                    write(", ");
+                }
+            }
+            write(TAB, TAB, ");\n", TAB, "}");
+        }
+
+        /**
+         * add one non private and non abstract method to implementation
+         * @param method non private abstract method
+         */
+        private void printMethod(Method method) {
+            write(TAB, "\n", Modifier.toString(~Modifier.ABSTRACT & method.getModifiers() & Modifier.methodModifiers()));
+            write(" ", method.getReturnType().getCanonicalName(), " ", method.getName(), "(");
+            printArgs(method.getParameterTypes());
+            write(") {\n");
+            Class retClass = method.getReturnType();
+            if (!retClass.equals(void.class)) {
+                write(TAB, TAB, "return ");
+                String retDefault;
+                if (retClass.isPrimitive()) {
+                    retDefault = retClass.equals(boolean.class) ? "false" : "0";
+                } else {
+                    retDefault = "null";
+                }
+                write(retDefault, ";");
+            }
+            write("\n", TAB, "}");
+        }
+
+        /**
+         * add arguments of constructor or method to implementation
+         * @param args arguments of constructor or method
+         */
+        private void printArgs(Class[] args) {
+            for (int i = 0; i < args.length; i++) {
+                write(args[i].getCanonicalName(), " arg", String.valueOf(i));
+                if (i != args.length - 1) {
+                    write(", ");
+                }
+            }
+        }
+
+        /**
+         * add exeptions of constructor to implementation
+         * @param exceptions exceptions to append
+         */
+        public void printExceptions(Class[] exceptions) {
+            if (exceptions.length != 0) {
+                write(" throws ");
+            }
+            for (int i = 0; i < exceptions.length; i++) {
+                write(exceptions[i].getCanonicalName());
+                if (i != exceptions.length - 1) {
+                    write(", ");
+                }
+            }
+            write(" ");
+        }
+
+        /**
+         * add string to builder
+         * @param strings strings to append
+         */
+        private void write(String... strings) {
+            for (String string : strings) {
+                builder.append(string);
+            }
+        }
+    }
+
+    /**
+     * Creates a file in specified folder that implements or extends interface or class
+     * @param aClass class or interface that will be implemented
+     * @param root directory where to create implementation
+     * @throws ImplerException inheriting impossible,
+     *                         IOException occurred
+     */
+    @Override
+    public void implement(Class<?> aClass, Path root) throws ImplerException {
+        boolean bConstr = aClass.isInterface();
+        for (Constructor constructor : aClass.getDeclaredConstructors()) {
+            if (!Modifier.isPrivate(constructor.getModifiers())) {
+                bConstr = true;
+            }
+        }
+        if (Modifier.isFinal(Modifier.classModifiers() & aClass.getModifiers())) {
+            throw new ImplerException("Class is final");
+        }
+        if (aClass == Enum.class) {
+            throw new ImplerException("Enum can not be extended");
+        }
+        if (!bConstr) {
+            throw new ImplerException("No constructors");
+        }
+        Path path;
         try {
-            final Class<?> impl = loader.loadClass(name);
-            System.out.println(impl.getName());
-        } catch (ClassNotFoundException e) {
+            path = Files.createDirectories(root.resolve(Paths.get(aClass.getPackage().getName().replace(".", File.separator) + File.separator)));
+        } catch (IOException e) {
+            throw new ImplerException();
+        }
+        try (BufferedWriter writer = Files.newBufferedWriter(path.resolve(aClass.getSimpleName() + "Impl.java"), Charset.defaultCharset())) {
+            ClassDescriber classDescriber = new ClassDescriber(aClass);
+            writer.write(classDescriber.emptyImplemented());
+        } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    /**
+     * main method
+     * @param args class canonical name, path to jar
+     */
+    public static void main(String[] args) {
+        if (args.length < 2){
+            System.out.println("Wrong args");
+            return;
+        }
+        try {
+            Class aClass = Class.forName(args[0]);
+            Path path = Paths.get(args[1]);
+            new Implementor().implement(aClass, path);
+        } catch (ClassNotFoundException e) {
+            System.out.println("Class not found");
+        } catch (ImplerException e) {
+            System.out.println(e.getMessage());
         }
     }
 }
