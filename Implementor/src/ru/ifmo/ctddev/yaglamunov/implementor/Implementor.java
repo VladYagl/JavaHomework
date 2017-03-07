@@ -111,8 +111,9 @@ public class Implementor implements JarImpler {
         }
     }
 
-    private void printMethod(Method method, String modif) throws IOException {
-        print("\t%s %s %s(", modif, method.getReturnType().getCanonicalName(), method.getName());
+    private void printMethod(Method method) throws IOException {
+        print("\t%s ", Modifier.toString(~Modifier.ABSTRACT & method.getModifiers() & Modifier.methodModifiers()));
+        print("%s %s(", method.getReturnType().getCanonicalName(), method.getName());
         printParameters(method.getParameters());
         print(") {");
         if (method.getReturnType() != void.class) {
@@ -131,13 +132,13 @@ public class Implementor implements JarImpler {
 
         for (Method method : aClass.getMethods()) {
             if (Modifier.isAbstract(method.getModifiers())) {
-                printMethod(method, "public");
+                printMethod(method);
             }
         }
 
         for (Method method : methods) {
             if (Modifier.isAbstract(method.getModifiers()) && Modifier.isProtected(method.getModifiers())) {
-                printMethod(method, "protected");
+                printMethod(method);
             }
         }
     }
