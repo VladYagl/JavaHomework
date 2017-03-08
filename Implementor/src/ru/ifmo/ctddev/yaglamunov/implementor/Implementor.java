@@ -102,7 +102,7 @@ public class Implementor implements JarImpler {
     }
 
     private Path getSourceDir(Class aClass) {
-        return getSourceDir(aClass, Paths.get("./"));
+        return getSourceDir(aClass, Paths.get("."));
     }
 
     @Override
