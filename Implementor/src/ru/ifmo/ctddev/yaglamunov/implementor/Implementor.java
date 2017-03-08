@@ -9,9 +9,6 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.*;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
@@ -148,7 +145,7 @@ public class Implementor implements JarImpler {
     }
 
     private Path getSourceDir(Class aClass) {
-        return getSourceDir(aClass, Paths.get("./"));
+        return Paths.get(aClass.getPackage().getName().replace(".", File.separator));
     }
 
     @Override
@@ -205,19 +202,17 @@ public class Implementor implements JarImpler {
         }
     }
 
-    protected static URLClassLoader getClassLoader(final Path root) {
-        try {
-            return new URLClassLoader(new URL[]{root.toUri().toURL()});
-        } catch (final MalformedURLException e) {
-            throw new AssertionError(e);
-        }
-    }
-
     @Override
     public void implementJar(Class<?> aClass, Path jarFile) throws ImplerException {
-        implement(aClass, Paths.get("./"));
+        implement(aClass, Paths.get("." + File.separator));
         Path dir = getSourceDir(aClass);
         Path sourceFile = dir.resolve(aClass.getSimpleName() + "Impl.java");
+
+        if (!sourceFile.equals(Paths.get(aClass.getPackage().getName().replace(".", File.separator) + File.separator + aClass.getSimpleName() + "Impl.java"))) {
+            System.out.println(sourceFile);
+            System.out.println(Paths.get(aClass.getPackage().getName().replace(".", File.separator) + File.separator + aClass.getSimpleName() + "Impl.java"));
+            throw new SecurityException();
+        }
 
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
         if (compiler == null) {
