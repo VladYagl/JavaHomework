@@ -218,7 +218,6 @@ public class Implementor implements JarImpler {
         implement(aClass, Paths.get("./"));
         Path dir = getSourceDir(aClass);
         Path sourceFile = dir.resolve(aClass.getSimpleName() + "Impl.java");
-        Path classFile = dir.resolve(aClass.getSimpleName() + "Impl.class");
 
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
         if (compiler == null) {
@@ -227,6 +226,7 @@ public class Implementor implements JarImpler {
         if (compiler.run(null, null, null, sourceFile.toString()) != 0) {
             throw new ImplerException("Compilation error");
         }
+        Path classFile = dir.resolve(aClass.getSimpleName() + "Impl.class");
 
         Manifest manifest = new Manifest();
         manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
