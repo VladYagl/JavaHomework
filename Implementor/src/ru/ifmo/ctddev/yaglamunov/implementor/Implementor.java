@@ -128,7 +128,7 @@ public class Implementor implements JarImpler {
         }
 
         try (final BufferedWriter writer = Files.newBufferedWriter(path.resolve(aClass.getSimpleName() + "Impl.java"), charset)) {
-            printer = new Printer(new UnicodeFilter(writer));
+            printer = new Printer(new UnicodeWriter(writer));
             printer.println("package " + aClass.getPackage().getName() + ";\n");
             printer.print("public class %sImpl %s %s {\n", aClass.getSimpleName(), aClass.isInterface() ? "implements" : "extends", aClass.getName());
 
@@ -152,9 +152,7 @@ public class Implementor implements JarImpler {
         if (compiler == null) {
             throw new ImplerException("Could not get java compiler");
         }
-        if (compiler.run(null, null, null, sourceFile.toString(),
-                "-encoding", "Cp866"
-        ) != 0) {
+        if (compiler.run(null, null, null, sourceFile.toString(), "-encoding", "cp866") != 0) {
             throw new ImplerException("Compilation error");
         }
 
@@ -171,33 +169,22 @@ public class Implementor implements JarImpler {
         }
     }
 
-    private class UnicodeFilter extends FilterWriter {
+    private class UnicodeWriter extends FilterWriter {
 
-        /**
-         * Construct the Filter on provided Writer
-         *
-         * @param out writer to filter
-         */
-        protected UnicodeFilter(Writer out) {
+        UnicodeWriter(Writer out) {
             super(out);
         }
 
-        /**
-         *Prints current sumbol in correct charset
-         */
         @Override
         public void write(int c) throws IOException {
             if (c >= 128) {
-                super.write(String.format("\\u%04X", (int) c));
+//                super.write(String.format("\\u%04X", (int) c));
+                super.write(c);
             } else {
                 super.write(c);
             }
         }
 
-        /**
-         * Replaces unicode characters in <code>string</code> to "\\uXXXX" sequences.
-         * <p>
-         */
         @Override
         public void write(String string, int off, int len) throws IOException {
             for (char c : string.substring(off, off + len).toCharArray()) {
