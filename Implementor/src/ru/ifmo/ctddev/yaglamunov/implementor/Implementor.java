@@ -5,8 +5,13 @@ import info.kgeorgiy.java.advanced.implementor.JarImpler;
 
 import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;
-import java.io.*;
-import java.lang.reflect.*;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
@@ -14,7 +19,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Set;
 import java.util.jar.Attributes;
 import java.util.jar.JarOutputStream;
@@ -25,45 +29,7 @@ public class Implementor implements JarImpler {
 
     private static final Charset charset = Charset.forName("UTF-8");
 
-    private Writer localWriter;
-
-    private void println(String a) throws IOException {
-        localWriter.write(a);
-        localWriter.write("\n");
-    }
-
-    private void println() throws IOException {
-        println("");
-    }
-
-    private void println(String format, Object... args) throws IOException {
-        println(String.format(format, args));
-    }
-
-    private void print(String a) throws IOException {
-        localWriter.write(a);
-    }
-
-    private void print(String format, Object... args) throws IOException {
-        print(String.format(format, args));
-    }
-
-    private void printParameters(Parameter[] parameters) throws IOException {
-        int position = 0;
-        for (Parameter parameter : parameters) {
-            if (position++ != 0) {
-                print(", ");
-            }
-            print("%s %s", parameter.getType().getCanonicalName(), parameter.getName());
-        }
-    }
-
-    private static String getDefaultValue(Class clazz) {
-        if (clazz == char.class) {
-            return "\'\u0000\'";
-        }
-        return Objects.toString(Array.get(Array.newInstance(clazz, 1), 0)) + (clazz == float.class ? "F" : "");
-    }
+    private Printer printer;
 
     private void printConstructors(Class aClass) throws IOException, ImplerException {
         boolean nonPrivate = false;
@@ -72,50 +38,39 @@ public class Implementor implements JarImpler {
                 continue;
             }
             nonPrivate = true;
-            print("\tpublic %sImpl(", aClass.getSimpleName());
-            printParameters(constructor.getParameters());
-            print(")");
+            printer.print("\tpublic %sImpl(", aClass.getSimpleName());
+            printer.printParameters(constructor.getParameters());
+            printer.print(")");
             if (constructor.getExceptionTypes().length > 0) {
-                print(" throws ");
+                printer.print(" throws ");
                 boolean first = true;
                 for (Class exception : constructor.getExceptionTypes()) {
                     if (!first) {
-                        print(", ");
+                        printer.print(", ");
                     } else {
                         first = false;
                     }
-                    print(exception.getCanonicalName());
+                    printer.print(exception.getCanonicalName());
                 }
             }
-            print(" {");
+            printer.print(" {");
             if (constructor.getParameters().length > 0) {
-                print("\n\t\tsuper(");
+                printer.print("\n\t\tsuper(");
                 for (int i = 0; i < constructor.getParameters().length; i++) {
                     if (i != 0) {
-                        print(", ");
+                        printer.print(", ");
                     }
-                    print("arg" + i);
+                    printer.print("arg" + i);
                 }
-                print(");\n\t");
+                printer.print(");\n\t");
             }
-            println("}\n");
+            printer.println("}\n");
         }
-        println();
+        printer.println();
 
         if (!aClass.isInterface() && !nonPrivate) {
             throw new ImplerException("There is no default constructor available in " + aClass.getSimpleName());
         }
-    }
-
-    private void printMethod(Method method) throws IOException {
-        print("\t%s ", Modifier.toString(~Modifier.ABSTRACT & method.getModifiers() & Modifier.methodModifiers()));
-        print("%s %s(", method.getReturnType().getCanonicalName(), method.getName());
-        printParameters(method.getParameters());
-        print(") {");
-        if (method.getReturnType() != void.class) {
-            print("\n\t\treturn %s;\n\t", getDefaultValue(method.getReturnType()));
-        }
-        println("}\n");
     }
 
     private void printMethods(Class aClass) throws IOException {
@@ -130,19 +85,15 @@ public class Implementor implements JarImpler {
 
         for (Method method : methods) {
             if (Modifier.isAbstract(method.getModifiers())) {
-                Writer tmp = localWriter;
-                localWriter = new StringWriter();
-                printMethod(method);
-                String fullMethod = ((StringWriter) localWriter).getBuffer().toString();
+                StringWriter stringWriter = new StringWriter();
+                Printer stringPrinter = new Printer(stringWriter);
+                stringPrinter.printMethod(method);
+                String fullMethod = stringWriter.getBuffer().toString();
                 if (!fullMethods.contains(fullMethod)) {
                     fullMethods.add(fullMethod);
+                    printer.println(fullMethod);
                 }
-                localWriter = tmp;
             }
-        }
-
-        for (String method : fullMethods) {
-            println(method);
         }
     }
 
@@ -157,7 +108,7 @@ public class Implementor implements JarImpler {
     @Override
     public void implement(Class<?> aClass, Path path) throws ImplerException {
         if (aClass == null || path == null) {
-            throw new ImplerException("null arguments");
+            throw new ImplerException("Null arguments");
         }
         if (aClass.isPrimitive()) {
             throw new ImplerException("Primitive class");
@@ -180,29 +131,29 @@ public class Implementor implements JarImpler {
         }
 
         try (final BufferedWriter writer = Files.newBufferedWriter(path.resolve(aClass.getSimpleName() + "Impl.java"), charset)) {
-            localWriter = writer;
-            println("package " + aClass.getPackage().getName() + ";\n");
-            print("public class %sImpl %s %s", aClass.getSimpleName(), aClass.isInterface() ? "implements" : "extends", aClass.getName());
+            printer = new Printer(writer);
+            printer.println("package " + aClass.getPackage().getName() + ";\n");
+            printer.print("public class %sImpl %s %s", aClass.getSimpleName(), aClass.isInterface() ? "implements" : "extends", aClass.getName());
 
             if (aClass.getInterfaces().length > 0) {
                 int count = 1;
                 if (!aClass.isInterface()) {
-                    print(" implements ");
+                    printer.print(" implements ");
                     count = 0;
                 }
                 for (Class inter : aClass.getInterfaces()) {
                     if (count++ != 0) {
-                        print(", ");
+                        printer.print(", ");
                     }
-                    print(inter.getName());
+                    printer.print(inter.getName());
                 }
             }
-            println("{\n");
+            printer.println("{\n");
 
             printConstructors(aClass);
             printMethods(aClass);
 
-            println("}");
+            printer.println("}");
         } catch (IOException e) {
             throw new ImplerException(e);
         }
