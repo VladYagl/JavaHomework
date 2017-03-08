@@ -225,10 +225,10 @@ public class Implementor implements JarImpler {
             jar.close();
             Files.deleteIfExists(sourceFile);
             Files.deleteIfExists(classFile);
-//            while (dir != null) {
-//                Files.deleteIfExists(dir);
-//                dir = dir.getParent();
-//            }
+            while (dir != null) {
+                Files.deleteIfExists(dir);
+                dir = dir.getParent();
+            }
         } catch (IOException e) {
             throw new ImplerException(e);
         }
