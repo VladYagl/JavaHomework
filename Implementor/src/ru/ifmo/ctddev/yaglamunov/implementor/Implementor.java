@@ -152,10 +152,7 @@ public class Implementor implements JarImpler {
         if (compiler == null) {
             throw new ImplerException("Could not get java compiler");
         }
-        if (compiler.run(null, null, null, sourceFile.toString(), "-cp",
-                dir
-                        + File.pathSeparator
-                        + System.getProperty("java.class.path"),
+        if (compiler.run(null, null, null, sourceFile.toString(),
                 "-encoding", "Cp866"
         ) != 0) {
             throw new ImplerException("Compilation error");
