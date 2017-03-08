@@ -5,10 +5,7 @@ import info.kgeorgiy.java.advanced.implementor.JarImpler;
 
 import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.IOException;
-import java.io.StringWriter;
+import java.io.*;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -131,14 +128,14 @@ public class Implementor implements JarImpler {
         }
 
         try (final BufferedWriter writer = Files.newBufferedWriter(path.resolve(aClass.getSimpleName() + "Impl.java"), charset)) {
-            printer = new Printer(writer);
+            printer = new Printer(new UnicodeFilter(writer));
             printer.println("package " + aClass.getPackage().getName() + ";\n");
             printer.print("public class %sImpl %s %s {\n", aClass.getSimpleName(), aClass.isInterface() ? "implements" : "extends", aClass.getName());
 
             printConstructors(aClass);
             printMethods(aClass);
 
-            printer.println("}");
+            printer.println("}\n");
         } catch (IOException e) {
             throw new ImplerException(e);
         }
@@ -155,7 +152,12 @@ public class Implementor implements JarImpler {
         if (compiler == null) {
             throw new ImplerException("Could not get java compiler");
         }
-        if (compiler.run(null, null, null, sourceFile.toString()) != 0) {
+        if (compiler.run(null, null, null, sourceFile.toString(), "-cp",
+                dir
+                        + File.pathSeparator
+                        + System.getProperty("java.class.path"),
+                "-encoding", "Cp866"
+        ) != 0) {
             throw new ImplerException("Compilation error");
         }
 
@@ -169,6 +171,41 @@ public class Implementor implements JarImpler {
             Files.deleteIfExists(classFile);
         } catch (IOException e) {
             throw new ImplerException(e);
+        }
+    }
+
+    private class UnicodeFilter extends FilterWriter {
+
+        /**
+         * Construct the Filter on provided Writer
+         *
+         * @param out writer to filter
+         */
+        protected UnicodeFilter(Writer out) {
+            super(out);
+        }
+
+        /**
+         *Prints current sumbol in correct charset
+         */
+        @Override
+        public void write(int c) throws IOException {
+            if (c >= 128) {
+                super.write(String.format("\\u%04X", (int) c));
+            } else {
+                super.write(c);
+            }
+        }
+
+        /**
+         * Replaces unicode characters in <code>string</code> to "\\uXXXX" sequences.
+         * <p>
+         */
+        @Override
+        public void write(String string, int off, int len) throws IOException {
+            for (char c : string.substring(off, off + len).toCharArray()) {
+                write(c);
+            }
         }
     }
 }
