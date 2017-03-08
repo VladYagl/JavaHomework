@@ -9,7 +9,7 @@ import java.lang.reflect.Parameter;
 import java.util.Objects;
 
 class Printer {
-    Writer writer;
+    private Writer writer;
 
     Printer(Writer writer) {
         this.writer = writer;

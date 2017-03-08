@@ -33,6 +33,7 @@ public class Implementor implements JarImpler {
                 continue;
             }
             nonPrivate = true;
+            printer.println();
             printer.print("\tpublic %sImpl(", aClass.getSimpleName());
             printer.printParameters(constructor.getParameters());
             printer.print(")");
@@ -61,7 +62,6 @@ public class Implementor implements JarImpler {
             }
             printer.println("}\n");
         }
-        printer.println();
 
         if (!aClass.isInterface() && !nonPrivate) {
             throw new ImplerException("There is no default constructor available in " + aClass.getSimpleName());
@@ -86,7 +86,7 @@ public class Implementor implements JarImpler {
                 String fullMethod = stringWriter.getBuffer().toString();
                 if (!fullMethods.contains(fullMethod)) {
                     fullMethods.add(fullMethod);
-                    printer.println(fullMethod);
+                    printer.print("\n" + fullMethod);
                 }
             }
         }
