@@ -208,12 +208,6 @@ public class Implementor implements JarImpler {
         Path dir = getSourceDir(aClass);
         Path sourceFile = dir.resolve(aClass.getSimpleName() + "Impl.java");
 
-        if (!sourceFile.equals(Paths.get(aClass.getPackage().getName().replace(".", File.separator) + File.separator + aClass.getSimpleName() + "Impl.java"))) {
-            System.out.println(sourceFile);
-            System.out.println(Paths.get(aClass.getPackage().getName().replace(".", File.separator) + File.separator + aClass.getSimpleName() + "Impl.java"));
-            throw new SecurityException();
-        }
-
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
         if (compiler == null) {
             throw new ImplerException("Could not get java compiler");
@@ -221,7 +215,7 @@ public class Implementor implements JarImpler {
         if (compiler.run(null, null, null, sourceFile.toString()) != 0) {
             throw new ImplerException("Compilation error");
         }
-        Path classFile = Paths.get(sourceFile.toString().replace(".java", ".class"));
+        Path classFile = dir.resolve(aClass.getSimpleName() + "Impl.class");
 
         Manifest manifest = new Manifest();
         manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
@@ -229,8 +223,8 @@ public class Implementor implements JarImpler {
             target.putNextEntry(new ZipEntry(classFile.toString()));
             Files.copy(classFile, target);
             target.close();
-//            Files.deleteIfExists(sourceFile);
-//            Files.deleteIfExists(classFile);
+            Files.deleteIfExists(sourceFile);
+            Files.deleteIfExists(classFile);
         } catch (IOException e) {
             e.printStackTrace();
         }
