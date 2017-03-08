@@ -169,19 +169,33 @@ public class Implementor implements JarImpler {
         }
     }
 
-    private class UnicodeWriter extends FilterWriter {
+    private class UnicodeWriter extends Writer {
+        Writer writer;
 
-        UnicodeWriter(Writer out) {
-            super(out);
+        UnicodeWriter(Writer other) {
+            writer = other;
         }
 
         @Override
-        public void write(int c) throws IOException {
-            if (c < 128) {
-                super.write(c);
-            } else {
-                super.write(String.format("\\u%04X", (int) c));
+        public void write(char[] cbuf, int off, int len) throws IOException {
+            for (int i = off; i < off + len; i++) {
+                char c = cbuf[i];
+                if (c < 128) {
+                    writer.write(c);
+                } else {
+                    writer.write(String.format("\\u%04X", (int) c));
+                }
             }
+        }
+
+        @Override
+        public void flush() throws IOException {
+            writer.flush();
+        }
+
+        @Override
+        public void close() throws IOException {
+            writer.close();
         }
     }
 }
