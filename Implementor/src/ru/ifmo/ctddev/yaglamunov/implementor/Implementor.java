@@ -204,9 +204,10 @@ public class Implementor implements JarImpler {
 
     @Override
     public void implementJar(Class<?> aClass, Path jarFile) throws ImplerException {
-        implement(aClass, Paths.get("." + File.separator));
+        implement(aClass, Paths.get("./"));
         Path dir = getSourceDir(aClass);
         Path sourceFile = dir.resolve(aClass.getSimpleName() + "Impl.java");
+        Path classFile = dir.resolve(aClass.getSimpleName() + "Impl.class");
 
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
         if (compiler == null) {
@@ -215,18 +216,21 @@ public class Implementor implements JarImpler {
         if (compiler.run(null, null, null, sourceFile.toString()) != 0) {
             throw new ImplerException("Compilation error");
         }
-        Path classFile = dir.resolve(aClass.getSimpleName() + "Impl.class");
 
         Manifest manifest = new Manifest();
         manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
-        try (JarOutputStream target = new JarOutputStream(Files.newOutputStream(jarFile), manifest)) {
-            target.putNextEntry(new ZipEntry(classFile.toString()));
-            Files.copy(classFile, target);
-            target.close();
-//            Files.deleteIfExists(sourceFile);
-//            Files.deleteIfExists(classFile);
+        try (JarOutputStream jar = new JarOutputStream(Files.newOutputStream(jarFile), manifest)) {
+            jar.putNextEntry(new ZipEntry(classFile.toString()));
+            Files.copy(classFile, jar);
+            jar.close();
+            Files.deleteIfExists(sourceFile);
+            Files.deleteIfExists(classFile);
+            while (dir != null) {
+                Files.deleteIfExists(dir);
+                dir = dir.getParent();
+            }
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new ImplerException(e);
         }
     }
 }
