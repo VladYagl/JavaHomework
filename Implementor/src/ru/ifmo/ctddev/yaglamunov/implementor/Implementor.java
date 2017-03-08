@@ -175,20 +175,6 @@ public class Implementor implements JarImpler {
             super(out);
         }
 
-        @Override
-        public void write(int c) throws IOException {
-//            if (c >= 128) {
-                super.write(String.format("\\u%04X", (int) c));
-//            } else {
-//                super.write(c);
-//            }
-        }
 
-        @Override
-        public void write(String string, int off, int len) throws IOException {
-            for (char c : string.substring(off, off + len).toCharArray()) {
-                write(c);
-            }
-        }
     }
 }
