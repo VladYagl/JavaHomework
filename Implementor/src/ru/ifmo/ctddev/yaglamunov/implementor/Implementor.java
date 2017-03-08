@@ -203,27 +203,34 @@ public class Implementor implements JarImpler {
     }
 
     @Override
-    public void implementJar(Class<?> token, Path jarFile) throws ImplerException {
-        implement(token, Paths.get("./"));
-        Path sourceFile = Paths.get(token.getPackage().getName().replace(".", File.separator) + File.separator + token.getSimpleName() + "Impl.java");
+    public void implementJar(Class<?> aClass, Path jarFile) throws ImplerException {
+        implement(aClass, Paths.get("." + File.separator));
+        Path dir = getSourceDir(aClass);
+        Path sourceFile = dir.resolve(aClass.getSimpleName() + "Impl.java");
+
+        if (!sourceFile.equals(Paths.get(aClass.getPackage().getName().replace(".", File.separator) + File.separator + aClass.getSimpleName() + "Impl.java"))) {
+            System.out.println(sourceFile);
+            System.out.println(Paths.get(aClass.getPackage().getName().replace(".", File.separator) + File.separator + aClass.getSimpleName() + "Impl.java"));
+            throw new SecurityException();
+        }
 
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
         if (compiler == null) {
-            throw new ImplerException("Couldn't find java compiler");
+            throw new ImplerException("Could not get java compiler");
         }
         if (compiler.run(null, null, null, sourceFile.toString()) != 0) {
-            throw new ImplerException("Error while compiling");
+            throw new ImplerException("Compilation error");
         }
         Path classFile = Paths.get(sourceFile.toString().replace(".java", ".class"));
 
         Manifest manifest = new Manifest();
         manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
-        try(JarOutputStream target = new JarOutputStream(Files.newOutputStream(jarFile), manifest)) {
+        try (JarOutputStream target = new JarOutputStream(Files.newOutputStream(jarFile), manifest)) {
             target.putNextEntry(new ZipEntry(classFile.toString()));
             Files.copy(classFile, target);
             target.close();
-            Files.deleteIfExists(sourceFile);
-            Files.deleteIfExists(classFile);
+//            Files.deleteIfExists(sourceFile);
+//            Files.deleteIfExists(classFile);
         } catch (IOException e) {
             e.printStackTrace();
         }
