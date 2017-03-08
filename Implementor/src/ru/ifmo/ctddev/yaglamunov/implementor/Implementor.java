@@ -102,7 +102,7 @@ public class Implementor implements JarImpler {
     }
 
     private Path getSourceDir(Class aClass) {
-        return Paths.get(aClass.getPackage().getName().replace(".", File.separator));
+        return getSourceDir(aClass, Paths.get("./"));
     }
 
     @Override
