@@ -157,7 +157,7 @@ public class Implementor implements JarImpler {
     @Override
     public void implement(Class<?> aClass, Path path) throws ImplerException {
         if (aClass == null || path == null) {
-            throw new ImplerException("Null arguments");
+            throw new ImplerException("null arguments");
         }
         if (aClass.isPrimitive()) {
             throw new ImplerException("Primitive class");
