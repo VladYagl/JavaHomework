@@ -102,7 +102,7 @@ public class Implementor implements JarImpler {
     }
 
     private Path getSourceDir(Class aClass) {
-        return getSourceDir(aClass, Paths.get("."));
+        return Paths.get(aClass.getPackage().getName().replace(".", File.separator));
     }
 
     @Override
@@ -133,22 +133,7 @@ public class Implementor implements JarImpler {
         try (final BufferedWriter writer = Files.newBufferedWriter(path.resolve(aClass.getSimpleName() + "Impl.java"), charset)) {
             printer = new Printer(writer);
             printer.println("package " + aClass.getPackage().getName() + ";\n");
-            printer.print("public class %sImpl %s %s", aClass.getSimpleName(), aClass.isInterface() ? "implements" : "extends", aClass.getName());
-
-            if (aClass.getInterfaces().length > 0) {
-                int count = 1;
-                if (!aClass.isInterface()) {
-                    printer.print(" implements ");
-                    count = 0;
-                }
-                for (Class inter : aClass.getInterfaces()) {
-                    if (count++ != 0) {
-                        printer.print(", ");
-                    }
-                    printer.print(inter.getName());
-                }
-            }
-            printer.println("{\n");
+            printer.print("public class %sImpl %s %s {\n", aClass.getSimpleName(), aClass.isInterface() ? "implements" : "extends", aClass.getName());
 
             printConstructors(aClass);
             printMethods(aClass);
