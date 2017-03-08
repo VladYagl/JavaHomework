@@ -5,9 +5,7 @@ import info.kgeorgiy.java.advanced.implementor.JarImpler;
 
 import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.lang.reflect.*;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -17,6 +15,7 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 import java.util.jar.Attributes;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
@@ -26,11 +25,11 @@ public class Implementor implements JarImpler {
 
     private static final Charset charset = Charset.forName("UTF-8");
 
-    private BufferedWriter localWriter;
+    private Writer localWriter;
 
     private void println(String a) throws IOException {
         localWriter.write(a);
-        localWriter.newLine();
+        localWriter.write("\n");
     }
 
     private void println() throws IOException {
@@ -88,18 +87,18 @@ public class Implementor implements JarImpler {
                     print(exception.getCanonicalName());
                 }
             }
-            print(" {\n");
+            print(" {");
             if (constructor.getParameters().length > 0) {
-                print("\t\tsuper(");
+                print("\n\t\tsuper(");
                 for (int i = 0; i < constructor.getParameters().length; i++) {
                     if (i != 0) {
                         print(", ");
                     }
                     print("arg" + i);
                 }
-                print(");");
+                print(");\n\t");
             }
-            println("\n\t}\n");
+            println("}\n");
         }
         println();
 
@@ -120,23 +119,30 @@ public class Implementor implements JarImpler {
     }
 
     private void printMethods(Class aClass) throws IOException {
-        HashSet<Method> methods = new HashSet<>();
+        Set<Method> methods = new HashSet<>();
+        Set<String> fullMethods = new HashSet<>();
         Class a = aClass;
         while (a != null) {
+            methods.addAll(Arrays.asList(a.getMethods()));
             methods.addAll(Arrays.asList(a.getDeclaredMethods()));
             a = a.getSuperclass();
         }
 
-        for (Method method : aClass.getMethods()) {
+        for (Method method : methods) {
             if (Modifier.isAbstract(method.getModifiers())) {
+                Writer tmp = localWriter;
+                localWriter = new StringWriter();
                 printMethod(method);
+                String fullMethod = ((StringWriter) localWriter).getBuffer().toString();
+                if (!fullMethods.contains(fullMethod)) {
+                    fullMethods.add(fullMethod);
+                }
+                localWriter = tmp;
             }
         }
 
-        for (Method method : methods) {
-            if (Modifier.isAbstract(method.getModifiers()) && Modifier.isProtected(method.getModifiers())) {
-                printMethod(method);
-            }
+        for (String method : fullMethods) {
+            println(method);
         }
     }
 
@@ -224,7 +230,7 @@ public class Implementor implements JarImpler {
             Files.copy(classFile, jar);
             jar.close();
             Files.deleteIfExists(sourceFile);
-//            Files.deleteIfExists(classFile);
+            Files.deleteIfExists(classFile);
         } catch (IOException e) {
             throw new ImplerException(e);
         }
