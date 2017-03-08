@@ -223,8 +223,8 @@ public class Implementor implements JarImpler {
             target.putNextEntry(new ZipEntry(classFile.toString()));
             Files.copy(classFile, target);
             target.close();
-            Files.deleteIfExists(sourceFile);
-            Files.deleteIfExists(classFile);
+//            Files.deleteIfExists(sourceFile);
+//            Files.deleteIfExists(classFile);
         } catch (IOException e) {
             e.printStackTrace();
         }
