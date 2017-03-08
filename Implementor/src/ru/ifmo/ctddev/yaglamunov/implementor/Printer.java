@@ -46,7 +46,7 @@ class Printer {
         }
     }
 
-    static String getDefaultValue(Class clazz) {
+    private static String getDefaultValue(Class clazz) {
         if (clazz == char.class) {
             return "\'\u0000\'";
         }

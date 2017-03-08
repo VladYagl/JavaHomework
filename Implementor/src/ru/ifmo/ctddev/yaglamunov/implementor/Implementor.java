@@ -14,9 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.jar.Attributes;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
@@ -71,7 +69,7 @@ public class Implementor implements JarImpler {
     }
 
     private void printMethods(Class aClass) throws IOException {
-        Set<Method> methods = new HashSet<>();
+        List<Method> methods = new ArrayList<>();
         Set<String> fullMethods = new HashSet<>();
         Class a = aClass;
         while (a != null) {
@@ -179,11 +177,10 @@ public class Implementor implements JarImpler {
         @Override
         public void write(char[] cbuf, int off, int len) throws IOException {
             for (int i = off; i < off + len; i++) {
-                char c = cbuf[i];
-                if (c < 128) {
-                    writer.write(c);
+                if (cbuf[i] < 128) {
+                    writer.write(cbuf[i]);
                 } else {
-                    writer.write(String.format("\\u%04X", (int) c));
+                    writer.write(String.format("\\u%04X", (int) cbuf[i]));
                 }
             }
         }
