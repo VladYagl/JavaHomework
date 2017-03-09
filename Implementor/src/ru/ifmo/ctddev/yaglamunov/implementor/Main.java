@@ -4,7 +4,23 @@ import info.kgeorgiy.java.advanced.implementor.ImplerException;
 
 import java.nio.file.Paths;
 
+/**
+ * Main class for {@code Implementor}
+ *
+ * @see Implementor
+ */
 public class Main {
+    /**
+     * Main function.
+     * <p>
+     * Usage:
+     * <ul>
+     * <li>{@code -jar class-to-implement path-to-jar} - generates a .jar file with implementation </li>
+     * <li>{@code class-to-implement} - generates a .java file with implementation </li>
+     * </ul>
+     *
+     * @param args command line arguments.
+     */
     public static void main(String[] args) {
         Implementor implementor = new Implementor();
         try {

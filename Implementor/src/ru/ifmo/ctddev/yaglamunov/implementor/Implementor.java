@@ -20,13 +20,27 @@ import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
 import java.util.zip.ZipEntry;
 
+/**
+ * Implementation of class {@code JarImpler}
+ */
 public class Implementor implements JarImpler {
 
+    /**
+     * Charset for writing <tt>.java</tt> file.
+     */
     private static final Charset charset = Charset.forName("UTF-8");
 
-    private Printer printer;
-
-    private void printConstructors(Class aClass) throws IOException, ImplerException {
+    /**
+     * Prints {@code aClass}'s constructors using {@code printer}.
+     * <p>
+     * All constructors simply call super class constructor.
+     *
+     * @param aClass  class to print constructors for.
+     * @param printer print for writing constructors.
+     * @throws IOException     if <tt>printer</tt> throws.
+     * @throws ImplerException if <tt>aClass</tt> don't have available default constructor.
+     */
+    private void printConstructors(Class aClass, Printer printer) throws IOException, ImplerException {
         boolean nonPrivate = false;
         for (Constructor<?> constructor : aClass.getDeclaredConstructors()) {
             if (Modifier.isPrivate(constructor.getModifiers())) {
@@ -68,7 +82,16 @@ public class Implementor implements JarImpler {
         }
     }
 
-    private void printMethods(Class aClass) throws IOException {
+    /**
+     * Prints {@code aClass}'s abstract methods using {@code printer}.
+     * <p>
+     * All methods return default value for return type.
+     *
+     * @param aClass  class to print constructors for.
+     * @param printer print for writing constructors.
+     * @throws IOException if <tt>printer</tt> throws.
+     */
+    private void printMethods(Class aClass, Printer printer) throws IOException {
         List<Method> methods = new ArrayList<>();
         Set<String> fullMethods = new HashSet<>();
         Class a = aClass;
@@ -92,14 +115,37 @@ public class Implementor implements JarImpler {
         }
     }
 
+    /**
+     * Returns a directory for <tt>.java</tt> file depending on {@code aClass} package.
+     *
+     * @param aClass class to return directory for.
+     * @param path   root directory.
+     * @return a directory for {@code aClass} package.
+     */
     private Path getSourceDir(Class aClass, Path path) {
         return path.resolve(aClass.getPackage().getName().replace(".", File.separator));
     }
 
+    /**
+     * Returns a directory for <tt>.java</tt> file depending on <tt>aClass</tt> package
+     * from the current working directory.
+     *
+     * @param aClass class to return directory for.
+     * @return a directory for {@code aClass} package.
+     */
     private Path getSourceDir(Class aClass) {
         return Paths.get(aClass.getPackage().getName().replace(".", File.separator));
     }
 
+    /**
+     * Produces class implementing {@code aClass} with same full name but <tt>Impl</tt> suffix added.
+     * File placed in correct sub directory of the {@code path}
+     *
+     * @param aClass class or interface to create implementation for.
+     * @param path   root directory.
+     * @throws ImplerException when when implementation cannot be
+     *                         generated.
+     */
     @Override
     public void implement(Class<?> aClass, Path path) throws ImplerException {
         if (aClass == null || path == null) {
@@ -126,12 +172,12 @@ public class Implementor implements JarImpler {
         }
 
         try (final BufferedWriter writer = Files.newBufferedWriter(path.resolve(aClass.getSimpleName() + "Impl.java"), charset)) {
-            printer = new Printer(new UnicodeWriter(writer));
+            Printer printer = new Printer(new UnicodeWriter(writer));
             printer.println("package " + aClass.getPackage().getName() + ";\n");
             printer.print("public class %sImpl %s %s {\n", aClass.getSimpleName(), aClass.isInterface() ? "implements" : "extends", aClass.getName());
 
-            printConstructors(aClass);
-            printMethods(aClass);
+            printConstructors(aClass, printer);
+            printMethods(aClass, printer);
 
             printer.println("}\n");
         } catch (IOException e) {
@@ -139,6 +185,14 @@ public class Implementor implements JarImpler {
         }
     }
 
+    /**
+     * Produces <tt>.jar</tt> file implementing {@code aClass} with same full name but <tt>Impl</tt> suffix added.
+     *
+     * @param aClass  class or interface to create implementation for.
+     * @param jarFile target <tt>.jar</tt> file.
+     * @throws ImplerException when when implementation cannot be
+     *                         generated.
+     */
     @Override
     public void implementJar(Class<?> aClass, Path jarFile) throws ImplerException {
         implement(aClass, Paths.get("./"));
@@ -167,13 +221,34 @@ public class Implementor implements JarImpler {
         }
     }
 
+    /**
+     * Wraps other writer to replace Unicode characters with \{@code uXXXX}.
+     */
     private class UnicodeWriter extends Writer {
+        /**
+         * Writer which this wraps.
+         */
         Writer writer;
 
+        /**
+         * Construct {@code UnicodeWriter} to wrap provided writer.
+         *
+         * @param other writer to be wrapped.
+         */
         UnicodeWriter(Writer other) {
             writer = other;
         }
 
+        /**
+         * {@inheritDoc}
+         * <p>
+         * replaces Unicode characters with \{@code uXXXX}.
+         *
+         * @param cbuf {@inheritDoc}
+         * @param off  {@inheritDoc}
+         * @param len  {@inheritDoc}
+         * @throws IOException {@inheritDoc}
+         */
         @Override
         public void write(char[] cbuf, int off, int len) throws IOException {
             for (int i = off; i < off + len; i++) {
@@ -185,11 +260,21 @@ public class Implementor implements JarImpler {
             }
         }
 
+        /**
+         * {@inheritDoc}
+         *
+         * @throws IOException {@inheritDoc}
+         */
         @Override
         public void flush() throws IOException {
             writer.flush();
         }
 
+        /**
+         * {@inheritDoc}
+         *
+         * @throws IOException {@inheritDoc}
+         */
         @Override
         public void close() throws IOException {
             writer.close();
