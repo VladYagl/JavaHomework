@@ -1,0 +1,3 @@
+./ru/ifmo/ctddev/yaglamunov/implementor/Implementor.java
+./ru/ifmo/ctddev/yaglamunov/implementor/Main.java
+./ru/ifmo/ctddev/yaglamunov/implementor/Printer.java

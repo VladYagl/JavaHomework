@@ -1,0 +1,3 @@
+Manifest-Version: 1.0
+Class-Path: /media/OS/Programming/java-advanced-2017/artifacts/JarImplementorTest.jar
+Main-Class: ru.ifmo.ctddev.yaglamunov.implementor.Main
