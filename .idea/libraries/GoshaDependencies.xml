@@ -4,10 +4,7 @@
       <root url="file://$PROJECT_DIR$/../java-advanced-2017/lib" />
     </CLASSES>
     <JAVADOC />
-    <SOURCES>
-      <root url="file://$PROJECT_DIR$/../java-advanced-2017/lib" />
-    </SOURCES>
+    <SOURCES />
     <jarDirectory url="file://$PROJECT_DIR$/../java-advanced-2017/lib" recursive="false" />
-    <jarDirectory url="file://$PROJECT_DIR$/../java-advanced-2017/lib" recursive="false" type="SOURCES" />
   </library>
 </component>
