@@ -14,17 +14,17 @@ public class IterativeParallelism implements ListIP {
 
     @Override
     public String join(int i, List<?> list) throws InterruptedException {
-        return null;
+        return concurrentFunction(i, list, master::join, data -> String.join("", data));
     }
 
     @Override
     public <T> List<T> filter(int i, List<? extends T> list, Predicate<? super T> predicate) throws InterruptedException {
-        return null;
+        return concurrentFunction(i, list, (Function<java.util.List<? extends T>, List<T>>) data -> master.filter(data, predicate), master::joinToList);
     }
 
     @Override
     public <T, U> List<U> map(int i, List<? extends T> list, Function<? super T, ? extends U> function) throws InterruptedException {
-        return null;
+        return concurrentFunction(i, list, (Function<java.util.List<? extends T>, List<U>>) data -> master.map(data, function), master::joinToList);
     }
 
     @Override
@@ -39,12 +39,12 @@ public class IterativeParallelism implements ListIP {
 
     @Override
     public <T> boolean all(int i, List<? extends T> list, Predicate<? super T> predicate) throws InterruptedException {
-        return concurrentFunction(i, list, data-> master.all(data, predicate), data -> master.all(data, Boolean::booleanValue));
+        return concurrentFunction(i, list, data -> master.all(data, predicate), data -> master.all(data, Boolean::booleanValue));
     }
 
     @Override
     public <T> boolean any(int i, List<? extends T> list, Predicate<? super T> predicate) throws InterruptedException {
-        return concurrentFunction(i, list, data-> master.any(data, predicate), data -> master.any(data, Boolean::booleanValue));
+        return concurrentFunction(i, list, data -> master.any(data, predicate), data -> master.any(data, Boolean::booleanValue));
     }
 
     private <T, S, U> U concurrentFunction(int i, List<? extends T> list, Function<List<? extends T>, S> function, Function<List<? extends S>, U> resultFunction) throws InterruptedException {

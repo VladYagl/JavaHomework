@@ -5,10 +5,10 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 class SingleThreadFunctions {
     <T> T maximum(List<? extends T> list, Comparator<? super T> comparator) {
-//        System.out.println("list = [" + list + "], comparator = [" + comparator + "]");
         return Collections.max(list, comparator);
     }
 
@@ -24,15 +24,21 @@ class SingleThreadFunctions {
         return list.stream().anyMatch(predicate);
     }
 
-    String join(List<?> values) {
-        return null;
-    }
-
     <T> List<T> filter(List<? extends T> values, Predicate<? super T> predicate) {
-        return null;
+        return values.stream().filter(predicate).collect(Collectors.toList());
     }
 
     <T, U> List<U> map(List<? extends T> values, Function<? super T, ? extends U> f) {
-        return null;
+        return values.stream().map(f).collect(Collectors.toList());
+    }
+
+    <T> List<T> joinToList(List<? extends List<T>> list) {
+        return list.stream()
+                .flatMap(List::stream)
+                .collect(Collectors.toList());
+    }
+
+    String join(List<?> values) {
+        return values.stream().map(Object::toString).collect(Collectors.joining());
     }
 }
