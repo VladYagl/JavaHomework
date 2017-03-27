@@ -52,7 +52,7 @@ public class ParallelMapperImpl implements ParallelMapper {
     }
 
     @Override
-    public <T, R> List<R> map(Function<? super T, ? extends R> function, List<? extends T> args) throws InterruptedException {
+    public <T, R> List<R> map(Function<? super T, ? extends R> function, final List<? extends T> args) throws InterruptedException {
         ArrayList<R> result = new ArrayList<>(Collections.nCopies(args.size(), null));
 
         for (int i = 0; i < args.size(); ++i) {
