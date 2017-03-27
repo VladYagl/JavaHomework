@@ -13,42 +13,42 @@ public class IterativeParallelism implements ListIP {
     private final SingleThreadFunctions master = new SingleThreadFunctions();
 
     @Override
-    public String join(int i, List<?> list) throws InterruptedException {
-        return concurrentFunction(i, list, master::join, data -> String.join("", data));
+    public String join(int threads, List<?> list) throws InterruptedException {
+        return concurrentFunction(threads, list, master::join, data -> String.join("", data));
     }
 
     @Override
-    public <T> List<T> filter(int i, List<? extends T> list, Predicate<? super T> predicate) throws InterruptedException {
-        return concurrentFunction(i, list, (Function<java.util.List<? extends T>, List<T>>) data -> master.filter(data, predicate), master::joinToList);
+    public <T> List<T> filter(int threads, List<? extends T> list, Predicate<? super T> predicate) throws InterruptedException {
+        return concurrentFunction(threads, list, (Function<java.util.List<? extends T>, List<T>>) data -> master.filter(data, predicate), master::joinToList);
     }
 
     @Override
-    public <T, U> List<U> map(int i, List<? extends T> list, Function<? super T, ? extends U> function) throws InterruptedException {
-        return concurrentFunction(i, list, (Function<java.util.List<? extends T>, List<U>>) data -> master.map(data, function), master::joinToList);
+    public <T, U> List<U> map(int threads, List<? extends T> list, Function<? super T, ? extends U> function) throws InterruptedException {
+        return concurrentFunction(threads, list, (Function<java.util.List<? extends T>, List<U>>) data -> master.map(data, function), master::joinToList);
     }
 
     @Override
-    public <T> T maximum(int i, List<? extends T> list, Comparator<? super T> comparator) throws InterruptedException {
-        return concurrentFunction(i, list, data -> master.maximum(data, comparator), data -> master.maximum(data, comparator));
+    public <T> T maximum(int threads, List<? extends T> list, Comparator<? super T> comparator) throws InterruptedException {
+        return concurrentFunction(threads, list, data -> master.maximum(data, comparator), data -> master.maximum(data, comparator));
     }
 
     @Override
-    public <T> T minimum(int i, List<? extends T> list, Comparator<? super T> comparator) throws InterruptedException {
-        return concurrentFunction(i, list, data -> master.minimum(data, comparator), data -> master.minimum(data, comparator));
+    public <T> T minimum(int threads, List<? extends T> list, Comparator<? super T> comparator) throws InterruptedException {
+        return concurrentFunction(threads, list, data -> master.minimum(data, comparator), data -> master.minimum(data, comparator));
     }
 
     @Override
-    public <T> boolean all(int i, List<? extends T> list, Predicate<? super T> predicate) throws InterruptedException {
-        return concurrentFunction(i, list, data -> master.all(data, predicate), data -> master.all(data, Boolean::booleanValue));
+    public <T> boolean all(int threads, List<? extends T> list, Predicate<? super T> predicate) throws InterruptedException {
+        return concurrentFunction(threads, list, data -> master.all(data, predicate), data -> master.all(data, Boolean::booleanValue));
     }
 
     @Override
-    public <T> boolean any(int i, List<? extends T> list, Predicate<? super T> predicate) throws InterruptedException {
-        return concurrentFunction(i, list, data -> master.any(data, predicate), data -> master.any(data, Boolean::booleanValue));
+    public <T> boolean any(int threads, List<? extends T> list, Predicate<? super T> predicate) throws InterruptedException {
+        return concurrentFunction(threads, list, data -> master.any(data, predicate), data -> master.any(data, Boolean::booleanValue));
     }
 
-    private <T, S, U> U concurrentFunction(int i, List<? extends T> list, Function<List<? extends T>, S> function, Function<List<? extends S>, U> resultFunction) throws InterruptedException {
-        int size = list.size() / Math.min(i, list.size());
+    private <T, S, U> U concurrentFunction(int threadsNumber, List<? extends T> list, Function<List<? extends T>, S> function, Function<List<? extends S>, U> resultFunction) throws InterruptedException {
+        int size = list.size() / Math.min(threadsNumber, list.size());
         int count = (list.size() + size - 1) / size;
         List<Thread> threads = new ArrayList<>();
         List<S> results = new ArrayList<>(count);
