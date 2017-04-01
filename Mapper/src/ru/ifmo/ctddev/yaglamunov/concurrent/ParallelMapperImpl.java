@@ -51,9 +51,17 @@ public class ParallelMapperImpl implements ParallelMapper {
         }
     }
 
+    private static class TaskInfo {
+
+        private volatile int readyCount = 0;
+
+    }
+
     @Override
     public <T, R> List<R> map(Function<? super T, ? extends R> function, final List<? extends T> args) throws InterruptedException {
         ArrayList<R> result = new ArrayList<>(Collections.nCopies(args.size(), null));
+
+        final TaskInfo taskInfo = new TaskInfo();
 
         for (int i = 0; i < args.size(); ++i) {
             final int position = i;
@@ -62,10 +70,9 @@ public class ParallelMapperImpl implements ParallelMapper {
                 taskQueue.add(() -> {
                     result.set(position, function.apply(args.get(position)));
 
-                    synchronized (readyLock) {
-                        readyCount++;
-                        if (readyCount == args.size()) {
-                            readyLock.notify();
+                    synchronized (taskInfo) {
+                        if (++taskInfo.readyCount == args.size()) {
+                            taskInfo.notify();
                         }
                     }
                 });
@@ -73,9 +80,9 @@ public class ParallelMapperImpl implements ParallelMapper {
             }
         }
 
-        synchronized (readyLock) {
-            while (readyCount < args.size()) {
-                readyLock.wait();
+        synchronized (taskInfo) {
+            while (taskInfo.readyCount < args.size()) {
+                taskInfo.wait();
             }
         }
 

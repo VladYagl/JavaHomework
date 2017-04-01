@@ -6,3 +6,5 @@ cp manifest.mf ../../res/manifest.mf
 cd ../../res/
 
 jar cfm Implementor.jar manifest.mf ./ru/ifmo/ctddev/yaglamunov/implementor/*.class
+
+rm -rf info/
