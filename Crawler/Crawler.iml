@@ -7,8 +7,7 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="WebCrawlerTest" level="project" />
     <orderEntry type="library" name="GoshaDependencies" level="project" />
-    <orderEntry type="library" name="WebCrawlerTest1" level="project" />
+    <orderEntry type="library" name="WebCrawlerTest" level="project" />
   </component>
 </module>

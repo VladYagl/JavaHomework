@@ -18,6 +18,9 @@ public class WebCrawler implements Crawler {
 
     private final List<Thread> downloaders = new ArrayList<>();
     private final List<Thread> extractors = new ArrayList<>();
+    private final Downloader downloader;
+    private final int downloadLimit;
+    private final int extractLimit;
 
     private final BlockingQueue<DownloadRequest> downloadRequests = new LinkedBlockingQueue<>();
     private final BlockingQueue<ExtractRequest> extractRequests = new LinkedBlockingQueue<>();
@@ -32,19 +35,34 @@ public class WebCrawler implements Crawler {
         return hosts.get(hostUrl);
     }
 
+    private void addDownloaderIfCan() {
+        synchronized (downloaders) {
+            if (downloaders.size() < downloadLimit) {
+                Thread thread = new Thread(new Loader(downloader));
+                downloaders.add(thread);
+                thread.start();
+            }
+        }
+    }
+
+    private void addExtractorIfCan() {
+        synchronized (extractors) {
+            if (extractors.size() < extractLimit) {
+                extractors.add(new Thread(new Extractor()));
+                extractors.get(extractors.size() - 1).start();
+            }
+        }
+    }
+
     @SuppressWarnings("WeakerAccess")
     public WebCrawler(Downloader downloader, int downloaders, int extractors, int perHost) {
-;'''/'        perHostLimit = perHost;
+        downloadLimit = downloaders;
+        extractLimit = extractors;
+        perHostLimit = perHost;
+        this.downloader = downloader;
 
-        for (int i = 0; i < downloaders; i++) {
-            this.downloaders.add(new Thread(new Loader(downloader)));
-            this.downloaders.get(i).start();
-        }
-
-        for (int i = 0; i < extractors; i++) {
-            this.extractors.add(new Thread(new Extractor()));
-            this.extractors.get(i).start();
-        }
+        addDownloaderIfCan();
+        addExtractorIfCan();
     }
 
     @Override
@@ -138,6 +156,7 @@ public class WebCrawler implements Crawler {
             workingThreads--;
             if (workingThreads < perHostLimit) {
                 if (!queue.isEmpty()) {
+                    addDownloaderIfCan();
                     downloadRequests.add(queue.remove());
                 }
             }
@@ -163,6 +182,7 @@ public class WebCrawler implements Crawler {
                             host.removeLoader();
                             request.result.add(request.url);
                             if (request.currentDepth < request.maxDepth) {
+                                addExtractorIfCan();
                                 extractRequests.put(new ExtractRequest(request, document));
                             }
                             request.status.finishTask();
@@ -192,6 +212,7 @@ public class WebCrawler implements Crawler {
                         for (String url : urls) {
                             synchronized (requestedUrls) {
                                 if (!requestedUrls.contains(url)) {
+                                    addDownloaderIfCan();
                                     downloadRequests.put(new DownloadRequest(new Request(request), url));
                                     requestedUrls.add(url);
                                 }
