@@ -5,6 +5,9 @@ import info.kgeorgiy.java.advanced.mapper.ParallelMapper;
 import java.util.*;
 import java.util.function.Function;
 
+/**
+ * Implementation for {@code ParallelMapper}.
+ */
 public class ParallelMapperImpl implements ParallelMapper {
 
     private final List<Thread> threads;
@@ -39,6 +42,11 @@ public class ParallelMapperImpl implements ParallelMapper {
 
     }
 
+    /**
+     * Creates an instance of {@link ParallelMapper}.
+     * Creates {@code threadsNumber} threads, which will be used in {@code map}.
+     * @param threadsNumber number of threads to create.
+     */
     public ParallelMapperImpl(int threadsNumber) {
         this.threads = new ArrayList<>();
 
@@ -48,6 +56,15 @@ public class ParallelMapperImpl implements ParallelMapper {
         }
     }
 
+    /**
+     * Applies function on each element of list and returns list of results.
+     * @param function function to apply.
+     * @param args arguments list.
+     * @param <T> type of arguments.
+     * @param <R> type of results.
+     * @return list of results of function applications.
+     * @throws InterruptedException wait for threads interrupted
+     */
     @Override
     public <T, R> List<R> map(Function<? super T, ? extends R> function, final List<? extends T> args) throws InterruptedException {
         ArrayList<R> result = new ArrayList<>(Collections.nCopies(args.size(), null));
@@ -80,6 +97,10 @@ public class ParallelMapperImpl implements ParallelMapper {
         return result;
     }
 
+    /**
+     * Closes all threads.
+     * @throws InterruptedException if main thread is interrupted during {@code Thread.join()} call.
+     */
     @Override
     public void close() throws InterruptedException {
         threads.forEach(Thread::interrupt);

@@ -2,6 +2,17 @@ package ru.ifmo.ctddev.yaglamunov.concurrent;
 
 import java.util.Arrays;
 
+/**
+ * Main function.
+ * <p>
+ * Usage:
+ * <ul>
+ * <li>{@code -jar class-to-implement path-to-jar} - generates a .jar file with implementation </li>
+ * <li>{@code class-to-implement} - generates a .java file with implementation </li>
+ * </ul>
+ *
+ * @param args command line arguments.
+ */
 public class Main {
     public static void main(String[] args) {
         IterativeParallelism parallelism = new IterativeParallelism(new ParallelMapperImpl(5));
