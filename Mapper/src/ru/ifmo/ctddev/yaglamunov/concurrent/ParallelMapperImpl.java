@@ -39,9 +39,6 @@ public class ParallelMapperImpl implements ParallelMapper {
 
     }
 
-    private final Object readyLock = new Object();
-    private volatile int readyCount = 0;
-
     public ParallelMapperImpl(int threadsNumber) {
         this.threads = new ArrayList<>();
 
@@ -51,17 +48,10 @@ public class ParallelMapperImpl implements ParallelMapper {
         }
     }
 
-    private static class TaskInfo {
-
-        private volatile int readyCount = 0;
-
-    }
-
     @Override
     public <T, R> List<R> map(Function<? super T, ? extends R> function, final List<? extends T> args) throws InterruptedException {
         ArrayList<R> result = new ArrayList<>(Collections.nCopies(args.size(), null));
-
-        final TaskInfo taskInfo = new TaskInfo();
+        int[] readyCount = {0};
 
         for (int i = 0; i < args.size(); ++i) {
             final int position = i;
@@ -70,9 +60,10 @@ public class ParallelMapperImpl implements ParallelMapper {
                 taskQueue.add(() -> {
                     result.set(position, function.apply(args.get(position)));
 
-                    synchronized (taskInfo) {
-                        if (++taskInfo.readyCount == args.size()) {
-                            taskInfo.notify();
+                    synchronized (readyCount) {
+                        readyCount[0]++;
+                        if (readyCount[0] == args.size()) {
+                            readyCount.notify();
                         }
                     }
                 });
@@ -80,9 +71,9 @@ public class ParallelMapperImpl implements ParallelMapper {
             }
         }
 
-        synchronized (taskInfo) {
-            while (taskInfo.readyCount < args.size()) {
-                taskInfo.wait();
+        synchronized (readyCount) {
+            while (readyCount[0] < args.size()) {
+                readyCount.wait();
             }
         }
 
@@ -91,9 +82,7 @@ public class ParallelMapperImpl implements ParallelMapper {
 
     @Override
     public void close() throws InterruptedException {
-        for (Thread thread : threads) {
-            thread.interrupt();
-        }
+        threads.forEach(Thread::interrupt);
         for (Thread thread : threads) {
             thread.join();
         }

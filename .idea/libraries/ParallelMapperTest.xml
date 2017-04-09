@@ -4,8 +4,6 @@
       <root url="jar://$PROJECT_DIR$/../java-advanced-2017/artifacts/ParallelMapperTest.jar!/" />
     </CLASSES>
     <JAVADOC />
-    <SOURCES>
-      <root url="file://$PROJECT_DIR$/../java-advanced-2017/java" />
-    </SOURCES>
+    <SOURCES />
   </library>
 </component>

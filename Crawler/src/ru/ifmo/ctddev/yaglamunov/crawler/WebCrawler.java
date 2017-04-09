@@ -34,7 +34,7 @@ public class WebCrawler implements Crawler {
 
     @SuppressWarnings("WeakerAccess")
     public WebCrawler(Downloader downloader, int downloaders, int extractors, int perHost) {
-        perHostLimit = perHost;
+;'''/'        perHostLimit = perHost;
 
         for (int i = 0; i < downloaders; i++) {
             this.downloaders.add(new Thread(new Loader(downloader)));
@@ -95,13 +95,15 @@ public class WebCrawler implements Crawler {
         }
 
         Path path = Paths.get("Downloads" + File.separator);
-        Files.walkFileTree(path, new SimpleFileVisitor<Path>() {
-            @Override
-            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                if (!Files.isDirectory(file)) Files.delete(file);
-                return super.visitFile(file, attrs);
-            }
-        });
+        if (Files.exists(path)) {
+            Files.walkFileTree(path, new SimpleFileVisitor<Path>() {
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                    if (!Files.isDirectory(file)) Files.deleteIfExists(file);
+                    return super.visitFile(file, attrs);
+                }
+            });
+        }
         try (Crawler crawler = new WebCrawler(new CachingDownloader(path), downloaders, extractors, perHost)) {
 
             Result links = crawler.download(args[0], 3);
