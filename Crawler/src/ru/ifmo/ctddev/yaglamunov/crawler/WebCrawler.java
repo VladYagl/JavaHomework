@@ -1,7 +1,6 @@
 package ru.ifmo.ctddev.yaglamunov.crawler;
 
 import info.kgeorgiy.java.advanced.crawler.*;
-import ru.ifmo.ctddev.yaglamunov.Log;
 
 import java.io.File;
 import java.io.IOException;
@@ -84,15 +83,6 @@ public class WebCrawler implements Crawler {
      */
     @Override
     public Result download(String url, int depth) {
-        if (Log.getInt("test") == null) {
-            Log.putInt("test", 1);
-        }
-        int testNumber = Log.getInt("test");
-        Log.putInt("test", testNumber + 1);
-        Log.println();
-        Log.println();
-        Log.println("Test " + testNumber);
-
         Queue<String> result = new LinkedBlockingQueue<String>();
         Map<String, IOException> errors = new ConcurrentHashMap<>();
 
@@ -190,25 +180,20 @@ public class WebCrawler implements Crawler {
          */
         @Override
         public void run() {
-            Log.println(request.url);
             try {
                 Host host = getHost(request.url);
                 if (host.lockLoader()) {
-                    Log.println(request.url + "  --start--");
                     Document document = downloader.download(request.url);
                     request.result.add(request.url);
-                    Log.println(request.url + "  --finish--");
                     host.removeLoader();
                     if (request.currentDepth < request.maxDepth) {
                         extractPool.execute(new Extractor(new ExtractRequest(request, document)));
                     }
                     request.status.finishTask();
                 } else {
-                    Log.println(request.url + "  ----> delay");
                     host.delay(request);
                 }
             } catch (IOException e) {
-                Log.println(request.url + "  --error-->  " + e.toString());
                 request.errors.put(request.url, e);
                 request.status.finishTask();
             }
