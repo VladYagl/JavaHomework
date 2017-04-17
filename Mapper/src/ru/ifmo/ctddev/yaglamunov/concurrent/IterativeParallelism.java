@@ -153,22 +153,26 @@ public class IterativeParallelism implements ListIP {
      * @throws InterruptedException if one of created threads was interrupted.
      */
     private <T, S, U> U concurrentFunction(int i, List<? extends T> list, Function<List<? extends T>, S> function, Function<List<? extends S>, U> resultFunction) throws InterruptedException {
-        int size = list.size() / Math.min(i, list.size());
-        int count = (list.size() + size - 1) / size;
+        int partCount = Math.min(i, list.size());
         List<Thread> threads = new ArrayList<>();
-        List<S> results = new ArrayList<>(count);
+        List<S> results = new ArrayList<>(partCount);
         List<List<? extends T>> parts = new ArrayList<>();
-        for (int j = 0; j < count; j++) {
-            parts.add(list.subList(j * size, Math.min(list.size(), (j + 1) * size)));
+
+        double step = list.size() / (double) partCount;
+        for (double to = step, from = 0; from < list.size(); to += step) {
+            int ito = (int) Math.floor(to);
+            parts.add(list.subList((int) from, Math.min(ito, list.size())));
+            from = ito;
         }
+
         if (parallelMapper == null) {
-            for (int j = 0; j < count; j++) {
+            for (int j = 0; j < partCount; j++) {
                 final int position = j;
                 results.add(null);
                 threads.add(new Thread(() -> results.set(position, function.apply(parts.get(position)))));
                 threads.get(j).start();
             }
-            for (int j = 0; j < count; j++) {
+            for (int j = 0; j < partCount; j++) {
                 threads.get(j).join();
             }
             return resultFunction.apply(results);

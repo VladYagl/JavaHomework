@@ -37,11 +37,6 @@ public class WebCrawler implements Crawler {
     private final Downloader downloader;
 
     /**
-     * Set of already add to request URLs
-     */
-    private final Set<String> requestedUrls = new HashSet<>();
-
-    /**
      * Returns a {@link Host} object witch mapped to provided URL
      *
      * @param url URL to return Host
@@ -83,13 +78,14 @@ public class WebCrawler implements Crawler {
      */
     @Override
     public Result download(String url, int depth) {
-        Queue<String> result = new LinkedBlockingQueue<String>();
+        Queue<String> result = new LinkedBlockingQueue<>();
         Map<String, IOException> errors = new ConcurrentHashMap<>();
 
         Request request = new Request(result, errors, depth);
         try {
-            requestedUrls.add(url);
-            downloadPool.execute(new Loader(downloader, new DownloadRequest(request, url)));
+            synchronized (downloadPool) {
+                downloadPool.execute(new Loader(downloader, new DownloadRequest(request, url)));
+            }
             request.status.waitFinish();
         } catch (InterruptedException e) {
             return null;
@@ -223,11 +219,8 @@ public class WebCrawler implements Crawler {
             try {
                 List<String> urls = request.document.extractLinks();
                 for (String url : urls) {
-                    synchronized (requestedUrls) {
-                        if (!requestedUrls.contains(url)) {
-                            downloadPool.execute(new Loader(downloader, new DownloadRequest(request, url)));
-                            requestedUrls.add(url);
-                        }
+                    if (request.requestUrl(url)) {
+                        downloadPool.execute(new Loader(downloader, new DownloadRequest(request, url)));
                     }
                 }
             } catch (IOException e) {

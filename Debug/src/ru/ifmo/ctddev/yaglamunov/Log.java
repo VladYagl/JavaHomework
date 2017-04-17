@@ -19,6 +19,15 @@ public class Log {
         }
     }
 
+    public synchronized static void save() {
+        if (!initialized) init();
+        try {
+            writer.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     @SuppressWarnings("WeakerAccess")
     public synchronized static void print(String string) {
         if (!initialized) init();
@@ -36,7 +45,6 @@ public class Log {
     public synchronized static void println() {
         println("");
     }
-
 
     private static final Map<String, Integer> values = new HashMap<>();
 

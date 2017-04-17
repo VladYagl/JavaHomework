@@ -1,8 +1,10 @@
 package ru.ifmo.ctddev.yaglamunov.crawler;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
 
 /**
  * Contains general information about request to {@code WebCrawler}: it's status,
@@ -14,6 +16,7 @@ class Request {
     final int maxDepth;
     final Queue<String> result;
     final Map<String, IOException> errors;
+    final Set<String> requestedUrls;
 
     /**
      * Creates new request
@@ -28,6 +31,7 @@ class Request {
         this.maxDepth = maxDepth;
         this.currentDepth = 0;
         status = new Status();
+        requestedUrls = new HashSet<>();
     }
 
     /**
@@ -41,5 +45,17 @@ class Request {
         maxDepth = other.maxDepth;
         result = other.result;
         errors = other.errors;
+        requestedUrls = other.requestedUrls;
+    }
+
+    public boolean requestUrl(String url) {
+        synchronized (requestedUrls) {
+            if (!requestedUrls.contains(url)) {
+                requestedUrls.add(url);
+                return true;
+            } else {
+                return false;
+            }
+        }
     }
 }

@@ -22,6 +22,9 @@ class DownloadRequest extends Request {
         this.url = url;
         status.addTask();
         currentDepth++;
+        synchronized (requestedUrls) {
+            requestedUrls.add(url);
+        }
     }
 
     /**
