@@ -1,19 +1,24 @@
 package ru.ifmo.ctddev.yaglamunov.hello;
 
 import info.kgeorgiy.java.advanced.hello.HelloClient;
-import ru.ifmo.ctddev.yaglamunov.Log;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
+import java.nio.charset.Charset;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Sends request to the server, accepts the results and prints them.
+ */
 public class HelloUDPClient implements HelloClient {
     private CountDownLatch countDown;
+
+    private final Charset charset = Charset.forName("UTF8");
 
     private class Sender implements Runnable {
         private final int requests;
@@ -35,27 +40,25 @@ public class HelloUDPClient implements HelloClient {
                 socket.setSoTimeout(50);
 
                 for (int requestNumber = 0; requestNumber < requests && !Thread.interrupted(); ++requestNumber) {
-                    String requestStr = prefix + threadNumber + requestNumber;
-                    byte message[] = requestStr.getBytes();
+                    String requestStr = prefix + threadNumber + "_" + requestNumber;
+                    byte message[] = requestStr.getBytes(charset);
                     DatagramPacket request = new DatagramPacket(message, message.length, serverAddress);
 
                     DatagramPacket response = new DatagramPacket(buffer, buffer.length);
                     boolean success = false;
                     while (!Thread.interrupted() && !success) {
                         try {
+                            if (Thread.interrupted()) {
+                                return;
+                            }
                             socket.send(request);
                             socket.receive(response);
 
-                            Log.println("Client received = [" + new String(response.getData(),
-                                    response.getOffset(),
-                                    response.getLength()) + "]");
-                            Log.save();
-
                             String responseMessage = new String(response.getData(), response.getOffset(), response.getLength());
-//                            if (responseMessage.substring(7).equals(requestStr)) {
-                                System.out.println(responseMessage);
+                            if (responseMessage.substring(7).equals(requestStr)) {
+//                                System.out.println(responseMessage);
                                 success = true;
-//                            }
+                            }
                         } catch (Exception ignored) {
                         }
                     }
@@ -67,6 +70,14 @@ public class HelloUDPClient implements HelloClient {
         }
     }
 
+    /**
+     * Starts client.
+     * @param host name or ip-address computer where server is run.
+     * @param port port to send requests to.
+     * @param prefix prefix for the requests.
+     * @param requests number of requests in each thread.
+     * @param threads number of threads.
+     */
     @Override
     public void start(String host, int port, String prefix, int requests, int threads) {
         InetSocketAddress serverAddress = new InetSocketAddress(host, port);
@@ -90,6 +101,9 @@ public class HelloUDPClient implements HelloClient {
         }
     }
 
+    /**
+     * Entry point for {@code HelloUDPClient}.
+     */
     public static void main(String[] args) {
         final int port = Integer.parseInt(args[1]);
         final int threads = Integer.parseInt(args[3]);
