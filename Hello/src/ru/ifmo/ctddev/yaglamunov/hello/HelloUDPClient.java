@@ -7,11 +7,13 @@ import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.nio.charset.Charset;
+import java.util.concurrent.CountDownLatch;
 
 /**
  * Sends request to the server, accepts the results and prints them.
  */
 public class HelloUDPClient implements HelloClient {
+    private CountDownLatch countDown;
     private final Charset charset = Charset.forName("UTF8");
 
     private class Sender implements Runnable {
@@ -50,7 +52,7 @@ public class HelloUDPClient implements HelloClient {
 
                             String responseMessage = new String(response.getData(), response.getOffset(), response.getLength());
                             if (responseMessage.substring(7).equals(requestStr)) {
-                                System.out.println(responseMessage);
+//                                System.out.println(responseMessage);
                                 success = true;
                             }
                         } catch (Exception ignored) {
@@ -60,6 +62,8 @@ public class HelloUDPClient implements HelloClient {
             } catch (SocketException e) {
                 System.err.println("SocketException");
             }
+
+            countDown.countDown();
         }
     }
 
@@ -73,11 +77,18 @@ public class HelloUDPClient implements HelloClient {
      */
     @Override
     public void start(String host, int port, String prefix, int requests, int threads) {
+        countDown = new CountDownLatch(threads);
         InetSocketAddress serverAddress = new InetSocketAddress(host, port);
 
         for (int i = 0; i < threads; i++) {
             Thread thread = new Thread(new Sender(requests, prefix, i, serverAddress));
             thread.start();
+        }
+
+        try {
+            countDown.await();
+        } catch (InterruptedException e) {
+            System.out.println("Await interrupted");
         }
     }
 

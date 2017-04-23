@@ -4,6 +4,8 @@
       <root url="jar://$PROJECT_DIR$/../java-advanced-2017/artifacts/HelloUDPTest.jar!/" />
     </CLASSES>
     <JAVADOC />
-    <SOURCES />
+    <SOURCES>
+      <root url="file://$PROJECT_DIR$/../java-advanced-2017/java" />
+    </SOURCES>
   </library>
 </component>
