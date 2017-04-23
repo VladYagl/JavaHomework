@@ -78,8 +78,15 @@ public class HelloUDPServer implements HelloServer {
      * Entry point for {@code HelloUDPServer}.
      */
     public static void main(String[] args) {
-        final int port = Integer.parseInt(args[0]);
-        final int threads = Integer.parseInt(args[1]);
+        final int port;
+        final int threads;
+        try {
+            port = Integer.parseInt(args[0]);
+            threads = Integer.parseInt(args[1]);
+        } catch (NumberFormatException e) {
+            System.out.println("Wrong input");
+            return;
+        }
 
         new HelloUDPServer().start(port, threads);
     }
